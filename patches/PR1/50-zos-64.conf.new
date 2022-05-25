@@ -1,0 +1,11 @@
+## -*- mode: perl; -*-
+(
+# z/OS Unix an ASCII or EBCDIC-based Unix system on IBM mainframe
+    "zos-64" => {
+        inherit_from     => [ "BASE_unix" ],
+        cc               => "xlclang",
+        cflags           => "-qascii",
+        bn_ops           => "SIXTY_FOUR_BIT RC4_CHAR",
+        thread_scheme    => "(unknown)",
+    }
+);
