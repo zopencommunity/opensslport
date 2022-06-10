@@ -540,8 +540,8 @@ index 2d8930f..942aefa 100644
 +    {
 +        trigger = 1;
 +
-+        /* To avoid the SIGILL traps in most cases, 
-+       only probe for feature which SHOULD be there 
++        /* To avoid the SIGILL traps in most cases,
++       only probe for feature which SHOULD be there
 +    */
 +#if defined(__linux)
 +        /* Assume everything except FPU, let the Gods sort it out */
@@ -557,7 +557,7 @@ index 2d8930f..942aefa 100644
 +            mask |= PPC_ALTIVEC;
 +        }
 +        /*
-+        P5,P7 and above using the FPU paths 
++        P5,P7 and above using the FPU paths
 +        cuts RSA perf in half
 +        */
 +        if (hwcap & (POWER_5 | POWER_7 | POWER_8 | POWER_9 | POWER_10))

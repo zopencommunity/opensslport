@@ -47,7 +47,7 @@ index 4cadd6c..dd72153 100644
 -    if (!EC_POINT_get_affine_coordinates(key->group, key->pub_key, x, y, ctx))
 +    if (!EC_POINT_get_affine_coordinates(key->group, pubkey, x, y, ctx))
          goto err;
-        
+
      if (EC_METHOD_get_field_type(EC_GROUP_method_of(key->group)) == NID_X9_62_prime_field) {
 @@ -338,80 +343,125 @@ static int ossl_ec_key_private_check(const EC_KEY *eckey)
      }
@@ -61,7 +61,7 @@ index 4cadd6c..dd72153 100644
 + * eckey is the local key, peer_key is usually the peer public key
 + *
 + * Note peer key COULD also be the local public key as this
-+ * routine can be called internally to check for a valid public key 
++ * routine can be called internally to check for a valid public key
 + * as in ec_simple_key_check() below
 + */
  
@@ -75,7 +75,7 @@ index 4cadd6c..dd72153 100644
 -
 -    if (eckey == NULL || eckey->group == NULL || eckey->pub_key == NULL) {
 +    const BIGNUM *order = NULL;
-+  
++
 +    if (eckey == NULL || eckey->group == NULL || peer_key == NULL) {
          ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, ERR_R_PASSED_NULL_PARAMETER);
          return 0;
@@ -103,9 +103,9 @@ index 4cadd6c..dd72153 100644
 -    /* testing whether pub_key * order is the point at infinity */
 -    order = eckey->group->order;
 -    if (BN_is_zero(order)) {
-+    /* testing whether pub_key * order is the point at infinity 
++    /* testing whether pub_key * order is the point at infinity
 +       Note: Only needed if the cofactor isn't 1 as it's covered in the
-+       1 case by the previous checks. 
++       1 case by the previous checks.
 +       And it is 1 for the NIST curves anyway.
 +    */
 +    if(!BN_is_one(eckey->group->cofactor)) {

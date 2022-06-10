@@ -756,11 +756,11 @@ index 64e7ebb..13626df 100644
 +   externally what we report is a single bit set if all the KMA capabilities needed for GCM are present 
 +   because the code this is used with only gates one function that could do any GCM mode
 +   Note you need to check that all the AES modes are also present
-+ 
++
 +   (OPENSSL_s390xcap_P.kma[0] &  ((S390X_CAPBIT(S390X_AES_128) | S390X_CAPBIT(S390X_AES_192) | S390X_CAPBIT(S390X_AES_256) ))
 +				   == ((S390X_CAPBIT(S390X_AES_128) | S390X_CAPBIT(S390X_AES_192) | S390X_CAPBIT(S390X_AES_256))
 +*/
-+# define I_S390X_KMA_GCM        0x00002000 
++# define I_S390X_KMA_GCM        0x00002000
 +/* reserved                     0x00004000 */
 +/* reserved                     0x00008000 */
 +/* PCC EC scalar multiply */
@@ -830,7 +830,7 @@ index 213aebb..d81b188 100644
      struct sigaction ill_act, oact_ill, oact_fpe;
 -
 +    struct OPENSSL_s390xcap_st cap;
-+    
++
      if (OPENSSL_s390xcap_P.stfle[0])
          return;
  
@@ -1507,7 +1507,7 @@ index 213aebb..d81b188 100644
 +     (OPENSSL_s390xcap_P.klmd[0] & S390X_CAPBIT(S390X_SHAKE_256))
 +     ) cap |= I_S390X_SHAKE_256;
 +
-+  if((OPENSSL_s390xcap_P.kimd[1] & S390X_CAPBIT(S390X_GHASH)) !=0)     cap |= I_S390X_GHASH;  
++  if((OPENSSL_s390xcap_P.kimd[1] & S390X_CAPBIT(S390X_GHASH)) !=0)     cap |= I_S390X_GHASH;
 +  if((OPENSSL_s390xcap_P.km[0] & S390X_CAPBIT(S390X_AES_128)) !=0)     cap |= I_S390X_AES_128;
 +  if((OPENSSL_s390xcap_P.km[0] & S390X_CAPBIT(S390X_AES_192)) !=0)     cap |= I_S390X_AES_192;
 +  if((OPENSSL_s390xcap_P.km[0] & S390X_CAPBIT(S390X_AES_256)) !=0)     cap |= I_S390X_AES_256;
