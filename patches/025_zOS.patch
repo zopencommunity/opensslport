@@ -2378,7 +2378,7 @@ index 4cb8f43..8a1e07a 100644
 +    BR_EXIT();
 +
 +ALIGN(16);
-+LABEL("Lgo:");    
++LABEL("Lgo:");
 +    lgr    ($rounds,$t0);    #llgf    $rounds,240($key)
 +    la     ($i1,"0($key)");
 +    sllg   ($i2,$rounds,4);
@@ -2682,9 +2682,9 @@ index 4cb8f43..8a1e07a 100644
 +# upon entry $in is in r1, $out is in r2, $len is in r3, $key and $ivp are in DSA
 +# Before km c, $in needs to be in r8, $out can stay in r2 and $len can stay in r3
 +    $inp="R1";
-+    $outp="R2";   
++    $outp="R2";
 +    $len="R3";
-+    $key="R5"; # in DSA - may need to move to a different reg as r5 contains environment, 
++    $key="R5"; # in DSA - may need to move to a different reg as r5 contains environment,
 +               # which is necessary to call other functions.
 +    $ivp="R6"; # in DSA
 +    $AESE_key="R3";
@@ -2772,11 +2772,11 @@ index 4cb8f43..8a1e07a 100644
 +&{$z? \&stmg:\&stm}  ($key,$ra,"5*$SIZE_T($sp)"); # this is 5-7 on z/OS or 5-14 on linux
 +    xgr    ($wr0,$wr0);
 +
-+if ($flavour =~ /linux/) {    
++if ($flavour =~ /linux/) {
 +    cl     ($wr0,"$stdframe+$SIZE_T-4($sp)");    # Check ENC parm
 +} else {
 +&{$z? \&clg:\&cl} ($wr0,"$PARMS_OFF+$SIZE_T*5(r9)");    # Check ENC parm
-+}    
++}
 +    je     (LABEL("Lcbc_decrypt"));
 +
 +    larl   ($tbl,LABEL("AES_Te"));

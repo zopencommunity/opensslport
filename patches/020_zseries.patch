@@ -753,7 +753,7 @@ index 64e7ebb..13626df 100644
 +# define I_S390X_TRNG		0x00001000
 +
 +/* kma[0] - Later GCM amongst others
-+   externally what we report is a single bit set if all the KMA capabilities needed for GCM are present 
++   externally what we report is a single bit set if all the KMA capabilities needed for GCM are present
 +   because the code this is used with only gates one function that could do any GCM mode
 +   Note you need to check that all the AES modes are also present
 +
@@ -1513,8 +1513,8 @@ index 213aebb..d81b188 100644
 +  if((OPENSSL_s390xcap_P.km[0] & S390X_CAPBIT(S390X_AES_256)) !=0)     cap |= I_S390X_AES_256;
 +  if((OPENSSL_s390xcap_P.prno[1] & S390X_CAPBIT(S390X_TRNG))  !=0)     cap |= I_S390X_TRNG;
 +  if((OPENSSL_s390xcap_P.kma[0] & ALL_AES ) == ALL_AES )         cap |= I_S390X_KMA_GCM;
-+  if((OPENSSL_s390xcap_P.pcc[0] & ALL_PCC ) == ALL_PCC )         cap |= I_S390X_PCC;      	
-+  if((OPENSSL_s390xcap_P.kdsa[0] & ALL_KDSA ) == ALL_KDSA )      cap |= I_S390X_KDSA;      	
++  if((OPENSSL_s390xcap_P.pcc[0] & ALL_PCC ) == ALL_PCC )         cap |= I_S390X_PCC;
++  if((OPENSSL_s390xcap_P.kdsa[0] & ALL_KDSA ) == ALL_KDSA )      cap |= I_S390X_KDSA;
 +  return cap;
 +
  }
@@ -1531,7 +1531,7 @@ index 213aebb..d81b188 100644
 -  if(! s390_cap_set) {
 -    s390_cap_set = 1;
 -    OPENSSL_cpuid_setup();
-+  if( 0 == (capbits & I_S390X_SHA3_224) ) { 
++  if( 0 == (capbits & I_S390X_SHA3_224) ) {
 +    OPENSSL_s390xcap_P.kimd[0] &= ~S390X_CAPBIT(S390X_SHA3_224);
 +    OPENSSL_s390xcap_P.klmd[0] &= ~S390X_CAPBIT(S390X_SHA3_224);
    }

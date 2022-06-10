@@ -133,9 +133,9 @@ index 9d69a46..21660c8 100644
          return 0;
  }
 -
-+/* getauxval is almost USELESS here. 
++/* getauxval is almost USELESS here.
 +   It's an OS facility so it only knows about hardware capabilities
-+   that predate the OS. Which means it the build machine would need to 
++   that predate the OS. Which means it the build machine would need to
 +   be current
 +   Drop this code and fall through to the "ouch that hurts" paths
 +*/
@@ -175,7 +175,7 @@ index 9d69a46..21660c8 100644
 +int OPENSSL_cpuid(unsigned long long *id);
  
 -int OPENSSL_cpuid_override(long long mask) 
-+int OPENSSL_cpuid_override(unsigned long long mask) 
++int OPENSSL_cpuid_override(unsigned long long mask)
  {
    union {
 -    long long cap;
@@ -202,18 +202,18 @@ index 9d69a46..21660c8 100644
 +  u.icap[0] = OPENSSL_ppccap_P;
 +#else
 +  u.icap[l-1] = OPENSSL_ppccap_P;
-+#endif 
++#endif
  
 +  tmask = mask & (~PPC_ALLOWED_MASK_BITS);
 +
 +  u.cap &= tmask;
-+  
++
  #if (__BYTE_ORDER == __LITTLE_ENDIAN)
    OPENSSL_ppccap_P = u.icap[0];
  #else
 -  OPENSSL_ppccap_P = u.icap[3];
 +  OPENSSL_ppccap_P = u.icap[l-1];
- #endif   
+ #endif
 -  if(retest) {
 -    /* And probe if we turned stuff on, to ensure we don't have accidents 
 -       if the function is really there, no SIGILL, no problem
@@ -246,7 +246,7 @@ index 9d69a46..21660c8 100644
 -  u.icap[0] = u.icap[1] = u.icap[2] = 0;
 -  u.icap[3] = OPENSSL_ppccap_P;
 +  u.icap[l-1] = OPENSSL_ppccap_P;
- #endif  
+ #endif
 -  cap = OPENSSL_ppccap_P;
  
 -  /* fprintf(stderr,"cpuid %08lx %08lx %08lx %016llx\n",OPENSSL_ppccap_P,u.icap[0],u.icap[3],cap);  */
@@ -268,7 +268,7 @@ index 2065cbb..f30f8a2 100755
 +.align 4
 +.OPENSSL_HW_rand_raw:
 +Ldarn: darn    r3,0
-+       blr 
++       blr
 +       .long   0
 +       .byte   0,12,0x14,0,0,0,2,0
 +       .long   0

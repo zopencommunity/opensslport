@@ -79,5 +79,5 @@ index 12dc87c..2b20525 100644
 -       (0 == CRYPTO_memcmp(&deskey[1],&deskey[2],8))
 +				 (0 == CRYPTO_memcmp(&deskey[1],&deskey[2],8)))
      ) {
-        return 0;
+       return 0;	
      }

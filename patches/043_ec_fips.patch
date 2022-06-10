@@ -133,7 +133,7 @@ index 4cadd6c..dd72153 100644
          goto err;
      }
 +    ok = 1;
-+err:    
++err:
 +   if(NULL != point) {
 +     EC_POINT_free(point);
 +   }
@@ -146,7 +146,7 @@ index 4cadd6c..dd72153 100644
 +    EC_POINT *point = NULL;
 +
 +    /* Check the validity of the public key
-+       check shared with that used before 
++       check shared with that used before
 +       use of the key in ECDH compute key
 +     */
 +    if ((ctx = BN_CTX_new()) == NULL) {
@@ -256,7 +256,7 @@ index 0be00d4..8c9f5ac 100644
 +    if(1 != ec_key_public_key_check(ctx,ecdh,(EC_POINT *)pub_key)) {
 +       ECerr(EC_F_ECDH_SIMPLE_COMPUTE_KEY, EC_R_INVALID_PEER_KEY);
 +       goto err;
-+    }    
++    }
      if ((tmp = EC_POINT_new(group)) == NULL) {
          ECerr(EC_F_ECDH_SIMPLE_COMPUTE_KEY, ERR_R_MALLOC_FAILURE);
          goto err;
@@ -291,7 +291,7 @@ index 050ea9c..a86a001 100644
 +    int rv = 1;
 +    if(0 == fips_mode) {
 +        if(r) fips_mode = 1;
-+    } else {    
++    } else {
 +        if(0 == r) {
 +            rv = 0;
 +        }

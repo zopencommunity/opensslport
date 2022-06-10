@@ -11,7 +11,7 @@ index 5a78554..0e2d486 100644
      if (!bn_x931_derive_pi(p1, Xp1, ctx, cb))
          goto err;
 -
-+    BN_set_flags(p2, BN_FLG_CONSTTIME);         
++    BN_set_flags(p2, BN_FLG_CONSTTIME);
      if (!bn_x931_derive_pi(p2, Xp2, ctx, cb))
          goto err;
  
@@ -55,7 +55,7 @@ index 322cd14..7742d36 100644
  
      /* calculate d mod (p-1) */
      rsa->dmp1 = BN_new();
-+    BN_set_flags(rsa->dmp1, BN_FLG_CONSTTIME); /* Avoid leaking bits */   
++    BN_set_flags(rsa->dmp1, BN_FLG_CONSTTIME); /* Avoid leaking bits */
      if (rsa->dmp1 == NULL)
          goto err;
      if (!BN_mod(rsa->dmp1, rsa->d, r1, ctx))
@@ -63,7 +63,7 @@ index 322cd14..7742d36 100644
  
      /* calculate d mod (q-1) */
      rsa->dmq1 = BN_new();
-+    BN_set_flags(rsa->dmq1, BN_FLG_CONSTTIME); /* Avoid leaking bits */        
++    BN_set_flags(rsa->dmq1, BN_FLG_CONSTTIME); /* Avoid leaking bits */
      if (rsa->dmq1 == NULL)
          goto err;
      if (!BN_mod(rsa->dmq1, rsa->d, r2, ctx))
