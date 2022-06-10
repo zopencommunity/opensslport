@@ -63,7 +63,7 @@ index 78c7775..f0ecc0b 100644
 --- a/crypto/cryptlib.c
 +++ b/crypto/cryptlib.c
 @@ -598,11 +598,14 @@ extern void s390x_trng(void *buff,size_t len);
-  
+ 
  int OPENSSL_HW_rand(unsigned char *buf)
  {
 -  if(S390X_CAPBIT(S390X_TRNG)) {
@@ -74,10 +74,10 @@ index 78c7775..f0ecc0b 100644
 -      s390x_trng((void *)buf,8);
 +      s390x_trng((void *)&x,sizeof(x));
 +      memcpy(buf,&x,sizeof(x));
-     }  
+     }
 -    return 8;
 +    return sizeof(x);
-   }   
+   }
    return 0;
  }
 @@ -613,7 +616,7 @@ int OPENSSL_HW_rand(unsigned char *buf)
@@ -726,7 +726,7 @@ index 64e7ebb..13626df 100644
  # define S390X_KMA_HS		0x400
 +# define S390X_KDSA_D		0x80
 +
-+/* Bits for ICC's CPUID function, compressing the mess down to 64 bits 
++/* Bits for ICC's CPUID function, compressing the mess down to 64 bits
 +   There are assumptions here i.e. that we won't lose partial function
 +   These are used to mask out function for testing/bug suppression
 +   and the lower level capability tests in OpenSSL do full detail

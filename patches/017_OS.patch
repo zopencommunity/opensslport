@@ -32,7 +32,7 @@ index 02f98e9..78c7775 100644
 +  if(S390X_CAPBIT(S390X_TRNG)) {
      if(NULL != buf) {
        s390x_trng((void *)buf,8);
-     }  
+     }
 diff --git a/crypto/rand/rand_unix.c b/crypto/rand/rand_unix.c
 index 0f45251..9b82a5c 100644
 --- a/crypto/rand/rand_unix.c
@@ -43,7 +43,7 @@ index 0f45251..9b82a5c 100644
          /* Get wall clock time, take 8 bits. */
 +#if defined(__sun)
 +        v = (gethrtime() & 0xFF);
-+#else                
++#else
          clock_gettime(CLOCK_REALTIME, &ts);
          v = (unsigned char)(ts.tv_nsec & 0xFF);
 +#endif
@@ -65,7 +65,7 @@ index 65ce3cd..213aebb 100644
 +++ b/crypto/s390xcap.c
 @@ -76,6 +76,7 @@ int OPENSSL_cpuid(long long *id);
  
- int OPENSSL_cpuid_override(long long mask) 
+ int OPENSSL_cpuid_override(long long mask)
  {
 +#if 0
    union {

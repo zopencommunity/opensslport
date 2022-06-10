@@ -24,7 +24,7 @@ index 4cadd6c..dd72153 100644
 +          BN_free(eckey->priv_key);
 +          eckey->priv_key = NULL;
 +        }
-+      }     
++      }
      }
      return rv;
  }
@@ -47,7 +47,7 @@ index 4cadd6c..dd72153 100644
 -    if (!EC_POINT_get_affine_coordinates(key->group, key->pub_key, x, y, ctx))
 +    if (!EC_POINT_get_affine_coordinates(key->group, pubkey, x, y, ctx))
          goto err;
-         
+        
      if (EC_METHOD_get_field_type(EC_GROUP_method_of(key->group)) == NID_X9_62_prime_field) {
 @@ -338,80 +343,125 @@ static int ossl_ec_key_private_check(const EC_KEY *eckey)
      }
@@ -55,12 +55,12 @@ index 4cadd6c..dd72153 100644
  }
 +/*
 + * ECC peer Key validation as specified in SP800-56A R3.
-+ * Section 5.6.2.2 
++ * Section 5.6.2.2
 + * Check that the peer public key is valid before performing
 + * key agreement
 + * eckey is the local key, peer_key is usually the peer public key
-+ * 
-+ * Note peer key COULD also be the local public key as this 
++ *
++ * Note peer key COULD also be the local public key as this
 + * routine can be called internally to check for a valid public key 
 + * as in ec_simple_key_check() below
 + */

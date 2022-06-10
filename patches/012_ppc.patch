@@ -9,15 +9,15 @@ index 0ce8038..906b284 100644
 +#elif defined(__s390__)
 +#include "s390x_arch.h"
 +extern void s390x_trng(void *buff,size_t len);
-+ 
++
 +int OPENSSL_HW_rand(unsigned char *buf)
 +{
 +  if(OPENSSL_s390xcap_P[18] & S390X_PRNO_TRNG) {
 +    if(NULL != buf) {
 +      s390x_trng((void *)buf,8);
-+    }  
++    } 
 +    return 8;
-+  }   
++  }
 +  return 0;
 +}
 +#elif defined(__MVS__)
@@ -39,10 +39,10 @@ index 0ce8038..906b284 100644
 +int OPENSSL_HW_rand(unsigned char *buf)
 +{
 +  union {
-+    uint64_t tmp;    
++    uint64_t tmp;
 +    uint32_t tmpx[2];
 +  } u;
-+  uint32_t tmp1 = 0;  
++  uint32_t tmp1 = 0;
 +  int i = 10;
 +  int rv = 4;
 +  if( 0 != (OPENSSL_ppccap_P & PPC_MADD300)) {

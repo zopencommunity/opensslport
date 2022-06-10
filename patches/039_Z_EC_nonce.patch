@@ -16,7 +16,7 @@ index f395fc7..f84cd1b 100644
           */
 -         if (RAND_priv_bytes(param + S390X_OFF_RN(len), len) != 1) {
 -             ECerr(EC_F_ECDSA_S390X_NISTP_SIGN_SIG,
-+         if(!FIPS_mode()) {   
++         if(!FIPS_mode()) {
 +             if (RAND_priv_bytes(param + S390X_OFF_RN(len), len) != 1) {
 +                ECerr(EC_F_ECDSA_S390X_NISTP_SIGN_SIG,
                     EC_R_RANDOM_NUMBER_GENERATION_FAILED);
@@ -25,9 +25,9 @@ index f395fc7..f84cd1b 100644
 +             }
 +         } else {
 +             /* NIST requires a real KA test for EC so we can't use the HW path nonce, generate our own, disable the HW path */
-+  	     ctx = BN_CTX_new();
-+  	     do {
-+  	         BN_generate_dsa_nonce(k, EC_GROUP_get0_order(group), privkey, dgst, dgstlen, ctx);
++             ctx = BN_CTX_new();
++             do {
++                 BN_generate_dsa_nonce(k, EC_GROUP_get0_order(group), privkey, dgst, dgstlen, ctx);
 +             } while(BN_is_zero(k));
 +             BN_bn2binpad(k, param + S390X_OFF_RN(len), len);
 +             BN_CTX_free(ctx);

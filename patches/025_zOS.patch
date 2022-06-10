@@ -44,7 +44,7 @@ index 9add1cd..4bcbd15 100644
 +	chacha_asm_src  => "chacha-s390x.s",
 +	poly1305_asm_src => "poly1305-s390x.s",
 +	keccak1600_asm_src	=> "keccak1600-s390x.s",
-+    },   
++    },
 +   armv4_asm => {
  	template	=> 1,
  	cpuid_asm_src   => "armcap.c armv4cpuid.S",
@@ -219,7 +219,7 @@ index 4cb8f43..8a1e07a 100644
 +        $s3="R11"; $t3="R3";
 +
 +        $inp="R1";
-+        $outp="R2";    
++        $outp="R2";
 +        $bits="R2";
 +        $key="R3";
 +        $sp="R15";
@@ -265,7 +265,7 @@ index 4cb8f43..8a1e07a 100644
 +
 +my $stdframe=16*$SIZE_T+4*8;
 +
-+sub _data_word() { 
++sub _data_word() {
 +    my $i;
 +    while(defined($i=shift)) { &LONG($i,$i); }
  }
@@ -772,7 +772,7 @@ index 4cb8f43..8a1e07a 100644
 +if ($flavour =~ /linux/) {
 +    bras    ($ra,"_s390x_AES_encrypt");
 +    &{$z? \&lg:\&l}    ($outp,"3*$SIZE_T($sp)");
-+} else {    
++} else {
 +    bras    ($ra,"_s390x_AES_encrypt");
 +    &{$z? \&lg:\&l}    ($outp,"2*$SIZE_T($sp)");
 +}
@@ -794,7 +794,7 @@ index 4cb8f43..8a1e07a 100644
 +{
 +#.type   _s390x_AES_encrypt,\@function
 +# inputs: $key in r3, $s0 in r8, $s1 in $r9, $s2 in r10, $s3 in r11, $tbl in r13
-+# outputs: $s0, $s1, $s2, $s3 
++# outputs: $s0, $s1, $s2, $s3
 +LOCAL_FUNCTION("_s390x_AES_encrypt");
 +my $key;
 +&{$z? \&stg:\&st}    ($ra,"15*$SIZE_T($sp)");

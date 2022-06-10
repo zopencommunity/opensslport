@@ -9,12 +9,12 @@ index 653100a..723fa91 100644
 -
 +    /* PTW 2022
 +        We have products with other formal test compliance requirements
-+        that still use non-safe primes. 
++        that still use non-safe primes.
 +        So make this FIPS only
 +        Consumers can still call DH_check()/DH_check_pub_key()
 +        themselves if not in FIPS mode.
 +        Make unconditional when CVEs appear.
-+    */    
++    */
      dh->pub_key = pub_key;
      dh->priv_key = priv_key;
 -    if( 1 != DH_check_ex(dh) ) {
@@ -31,7 +31,7 @@ index 653100a..723fa91 100644
 +        if( 1 != DH_check_ex(dh) ) {
 +            dh->pub_key = NULL;
 +            dh->priv_key = NULL;
-+            goto err;    
++            goto err;
 +        }
 +        if(0 == DH_check_pub_key_ex(dh,dh->pub_key))
 +        {

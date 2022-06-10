@@ -14,7 +14,7 @@ index 4b620f3..001112a 100644
      size_t cnt = 0;
      static int init = 1;
 @@ -262,7 +266,6 @@ static void build_SYS_str_reasons(void)
-         if (str->string == NULL)
+     if (str->string == NULL)
              str->string = "unknown";
      }
 -

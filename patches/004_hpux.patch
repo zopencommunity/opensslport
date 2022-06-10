@@ -41,7 +41,7 @@ index 31da04a..0ce8038 100644
 +#elif defined(__aarch64__) || defined(__hpux)
  unsigned long OPENSSL_rdtscX() { return 0L; }
  #else
- unsigned long OPENSSL_rdtscX() 
+ unsigned long OPENSSL_rdtscX()
 diff --git a/crypto/threads_pthread.c b/crypto/threads_pthread.c
 index 1774a2b..ae39e23 100644
 --- a/crypto/threads_pthread.c

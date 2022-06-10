@@ -30,11 +30,11 @@ index 9b82a5c..5c43e33 100644
  #if defined(__sun)
 -        v = (gethrtime() & 0xFF);
 +        v = gethrtime() & 0xff;
- #else                
+ #else
          clock_gettime(CLOCK_REALTIME, &ts);
          v = (unsigned char)(ts.tv_nsec & 0xFF);
 -#endif
-+#endif        
++#endif
          rand_pool_add(pool, arg, &v, sizeof(v) , 2);
      }
      return rand_pool_entropy_available(pool);
@@ -112,7 +112,7 @@ index 9b82a5c..5c43e33 100644
  {
 -# if defined(OSSL_POSIX_TIMER_OKAY) && !defined(__sun)
 +#if defined(__sun)
-+     return gethrtime();   
++     return gethrtime();
 +# elif defined(OSSL_POSIX_TIMER_OKAY)
      {
          struct timespec ts;

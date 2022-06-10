@@ -275,7 +275,7 @@ index 2d8930f..942aefa 100644
 +/* Note this code is here so because Power has no usespace CPUID
 +   a) We can disable stuff that has problems with ICC_CAP_MASK
 +   b) We can make solid guess at what capabilites can't be present based on model
-+      and avoid some risky SIGILL's in the probe code 
++      and avoid some risky SIGILL's in the probe code
 +*/
 +
 +void OPENSSL_cpuid_setup_real(unsigned long mask)
@@ -502,7 +502,7 @@ index 2d8930f..942aefa 100644
 +                OPENSSL_ppccap_P |= PPC_MFSPR268;
 +            }
 +    }
-+    
++
      sigaction(SIGILL, &ill_oact, NULL);
      sigprocmask(SIG_SETMASK, &oset, NULL);
  }
@@ -529,9 +529,9 @@ index 2d8930f..942aefa 100644
 +    static int trigger = 0;
 +    unsigned long hwcap = 0;
 +
-+    /* IBM Specific hack, if ICC_CAP_MASK is set, 
-+     don't probe function that could cause a SIGILL, 
-+     as we'll be setting this via OPENSSL_cpuid_override() 
++    /* IBM Specific hack, if ICC_CAP_MASK is set,
++     don't probe function that could cause a SIGILL,
++     as we'll be setting this via OPENSSL_cpuid_override()
 +     later. The OpenSSL case would use OPENSSL_ppccap
 +     but OpenSSL has no override call.
 +  */

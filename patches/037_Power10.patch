@@ -5,10 +5,10 @@ index 39d8e61..60385f6 100644
 @@ -99,6 +99,9 @@ extern unsigned int OPENSSL_ppccap_P;
  #ifndef POWER_9
  #  define POWER_9 0x20000 /* 9 class CPU */
- #endif 
+ #endif
 +#ifndef POWER_10
 +#  define POWER_10 0x40000 /* 9 class CPU */
-+#endif 
++#endif
  
  
  extern unsigned long query_auxv(unsigned int type);
@@ -23,7 +23,7 @@ index 942aefa..091ad19 100644
 -#define POWER_10 0x40000 /* 9 class CPU */
 +#define POWER_10 0x40000 /* 10 class CPU */
 +#endif
-+/* Just guesses from here on, not even IBM knows */ 
++/* Just guesses from here on, not even IBM knows */
 +#ifndef POWER_11
 +#define POWER_11 0x80000 /* 11 class CPU */
 +#endif
@@ -57,7 +57,7 @@ index 942aefa..091ad19 100644
              mask |= PPC_ALTIVEC;
          }
 @@ -465,22 +480,22 @@ void OPENSSL_cpuid_setup()
-         P5,P7 and above using the FPU paths 
+         P5,P7 and above using the FPU paths
          cuts RSA perf in half
          */
 -        if (hwcap & (POWER_5 | POWER_7 | POWER_8 | POWER_9 | POWER_10))

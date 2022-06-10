@@ -20,13 +20,13 @@ index 5a78554..0e2d486 100644
      if (!BN_priv_rand(Xp2, rbits, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ODD))
          goto error;
 +    BN_set_flags(Xp1,BN_FLG_CONSTTIME);
-+    BN_set_flags(Xp2,BN_FLG_CONSTTIME);    
++    BN_set_flags(Xp2,BN_FLG_CONSTTIME);
      if (!BN_X931_derive_prime_ex(p, p1, p2, Xp, Xp1, Xp2, e, ctx, cb))
          goto error;
  
      ret = 1;
 -
-+    
++
   error:
      BN_CTX_end(ctx);
  
@@ -39,7 +39,7 @@ index 322cd14..7742d36 100644
          if (rsa->p == NULL)
              goto err;
 -
-+        BN_set_flags(rsa->p, BN_FLG_CONSTTIME);    
++        BN_set_flags(rsa->p, BN_FLG_CONSTTIME);
          if (!BN_X931_derive_prime_ex(rsa->p, p1, p2,
                                       Xp, Xp1, Xp2, e, ctx, cb))
              goto err;
@@ -47,7 +47,7 @@ index 322cd14..7742d36 100644
          rsa->q = BN_new();
          if (rsa->q == NULL)
              goto err;
-+        BN_set_flags(rsa->q, BN_FLG_CONSTTIME);            
++        BN_set_flags(rsa->q, BN_FLG_CONSTTIME);
          if (!BN_X931_derive_prime_ex(rsa->q, q1, q2,
                                       Xq, Xq1, Xq2, e, ctx, cb))
              goto err;
