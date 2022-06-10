@@ -1,0 +1,128 @@
+diff --git a/crypto/err/err.c b/crypto/err/err.c
+index 4b620f3..001112a 100644
+--- a/crypto/err/err.c
++++ b/crypto/err/err.c
+@@ -210,6 +210,10 @@ static void build_SYS_str_reasons(void)
+ {
+     /* OPENSSL_malloc cannot be used here, use static storage instead */
+     static char strerror_pool[SPACE_SYS_STR_REASONS];
++#if defined(_AIX)
++# define LEN_SYS_STR_REASON 32
++    static char strerror_tab[NUM_SYS_STR_REASONS][LEN_SYS_STR_REASON];
++#endif
+     char *cur = strerror_pool;
+     size_t cnt = 0;
+     static int init = 1;
+@@ -262,7 +266,6 @@ static void build_SYS_str_reasons(void)
+         if (str->string == NULL)
+             str->string = "unknown";
+     }
+-
+     /*
+      * Now we still have SYS_str_reasons[NUM_SYS_STR_REASONS] = {0, NULL}, as
+      * required by ERR_load_strings.
+diff --git a/crypto/init.c b/crypto/init.c
+index 7b95270..b23af79 100644
+--- a/crypto/init.c
++++ b/crypto/init.c
+@@ -116,7 +116,7 @@ err:
+     CRYPTO_THREAD_cleanup_local(&key);
+     return 0;
+ }
+-#if 0 /* IBM handles this itself */
++
+ static CRYPTO_ONCE register_atexit = CRYPTO_ONCE_STATIC_INIT;
+ #if !defined(OPENSSL_SYS_UEFI) && defined(_WIN32)
+ static int win32atexit(void)
+@@ -154,7 +154,7 @@ DEFINE_RUN_ONCE_STATIC_ALT(ossl_init_no_register_atexit,
+     /* Do nothing in this case */
+     return 1;
+ }
+-#endif
++
+ static CRYPTO_ONCE load_crypto_nodelete = CRYPTO_ONCE_STATIC_INIT;
+ DEFINE_RUN_ONCE_STATIC(ossl_init_load_crypto_nodelete)
+ {
+@@ -749,7 +749,7 @@ int OPENSSL_init_crypto(uint64_t opts, const OPENSSL_INIT_SETTINGS *settings)
+ 
+     return 1;
+ }
+-#if 0 /* IBM handles this itself */
++
+ int OPENSSL_atexit(void (*handler)(void))
+ {
+     OPENSSL_INIT_STOP *newhand;
+@@ -815,7 +815,7 @@ int OPENSSL_atexit(void (*handler)(void))
+ 
+     return 1;
+ }
+-#endif
++
+ #ifdef OPENSSL_SYS_UNIX
+ /*
+  * The following three functions are for OpenSSL developers.  This is
+diff --git a/crypto/ppc_arch.h b/crypto/ppc_arch.h
+index e761f01..39d8e61 100644
+--- a/crypto/ppc_arch.h
++++ b/crypto/ppc_arch.h
+@@ -17,19 +17,6 @@ extern unsigned int OPENSSL_ppccap_P;
+ #ifndef _AUXV_HWCAP_H
+ #define _AUXV_HWCAP_H
+ 
+-/*
+- * Flags' usage can appear ambiguous, because they are set rather
+- * to reflect OpenSSL performance preferences than actual processor
+- * capabilities.
+- */
+-# define PPC_FPU64       (1<<0)
+-/*HPARMREGS is Unused now */
+-# define PPC_HPARMREGS   (1<<1) 
+-# define PPC_ALTIVEC     (1<<2)
+-# define PPC_CRYPTO207   (1<<3)
+-# define PPC_FPU         (1<<4)
+-# define PPC_MADD300     (1<<5)
+-# define PPC_VCIPHER    PPC_CRYPTO207
+ 
+ 
+ #ifdef __powerpc__
+@@ -137,3 +124,5 @@ extern unsigned long query_auxv(unsigned int type);
+ 
+ #define PPC_VCIPHER    PPC_CRYPTO207
+ #endif
++
++#endif
+diff --git a/crypto/ppccap.c b/crypto/ppccap.c
+index 21660c8..2d8930f 100644
+--- a/crypto/ppccap.c
++++ b/crypto/ppccap.c
+@@ -174,7 +174,7 @@ void OPENSSL_madd300_probe(void);
+ long OPENSSL_rdtsc_mftb(void);
+ long OPENSSL_rdtsc_mfspr268(void);
+ 
+-uint32_t OPENSSL_rdtsc(void)
++unsigned long OPENSSL_rdtsc(void)
+ {
+     if (OPENSSL_ppccap_P & PPC_MFTB)
+         return OPENSSL_rdtsc_mftb();
+diff --git a/include/openssl/safestack.h b/include/openssl/safestack.h
+index 38b5578..267b215 100644
+--- a/include/openssl/safestack.h
++++ b/include/openssl/safestack.h
+@@ -174,7 +174,7 @@ DEFINE_SPECIAL_STACK_OF(OPENSSL_BLOCK, void)
+  * this header file is included but the resulting object is not linked against
+  * the Crypto library (openssl#6912).
+  */
+-# ifdef __SUNPRO_C
++# if 0 /*#ifdef __SUNPRO_C */
+ #  pragma weak OPENSSL_sk_num
+ #  pragma weak OPENSSL_sk_value
+ #  pragma weak OPENSSL_sk_new
+diff --git a/util/libcrypto.num b/util/libcrypto.num
+index a115b1d..f6d2a61 100644
+--- a/util/libcrypto.num
++++ b/util/libcrypto.num
+@@ -4593,3 +4593,4 @@ X509_REQ_set1_signature_algo            4546	1_1_1h	EXIST::FUNCTION:
+ BN_generate_prime_ex_with_q             4547 	1_1_1h  EXIST::FUNCTION:DH
+ dh_builtin_genparams_with_q             4548 	1_1_1h  EXIST::FUNCTION:DH
+ EC_KEY_decoded_from_explicit_params     4549	1_1_1h	EXIST::FUNCTION:EC
++err_clear_last_constant_time            4550 	1_1_1h  EXIST::FUNCTION:

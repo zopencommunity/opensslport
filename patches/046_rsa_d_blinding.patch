@@ -1,0 +1,528 @@
+diff --git a/crypto/bn/bn_blind.c b/crypto/bn/bn_blind.c
+index d507652..bbba7f4 100644
+--- a/crypto/bn/bn_blind.c
++++ b/crypto/bn/bn_blind.c
+@@ -106,7 +106,7 @@ int BN_BLINDING_update(BN_BLINDING *b, BN_CTX *ctx)
+     if (++b->counter == BN_BLINDING_COUNTER && b->e != NULL &&
+         !(b->flags & BN_BLINDING_NO_RECREATE)) {
+         /* re-create blinding parameters */
+-        if (!BN_BLINDING_create_param(b, NULL, NULL, ctx, NULL, NULL))
++        if (!BN_BLINDING_create_param(b, NULL, 0, NULL, ctx, NULL, NULL))
+             goto err;
+     } else if (!(b->flags & BN_BLINDING_NO_UPDATE)) {
+         if (b->m_ctx != NULL) {
+@@ -149,7 +149,7 @@ int BN_BLINDING_convert_ex(BIGNUM *n, BIGNUM *r, BN_BLINDING *b, BN_CTX *ctx)
+     else if (!BN_BLINDING_update(b, ctx))
+         return 0;
+ 
+-    if (r != NULL && (BN_copy(r, b->Ai) == NULL))
++    if (r != NULL && (BN_copy(r, (b->flags& BN_FLG_PRIVATE_EXP)?b->A:b->Ai) == NULL))
+         return 0;
+ 
+     if (b->m_ctx != NULL)
+@@ -232,7 +232,8 @@ void BN_BLINDING_set_flags(BN_BLINDING *b, unsigned long flags)
+ }
+ 
+ BN_BLINDING *BN_BLINDING_create_param(BN_BLINDING *b,
+-                                      const BIGNUM *e, BIGNUM *m, BN_CTX *ctx,
++                                      const BIGNUM *e, int isPrivate,
++                                      BIGNUM *m, BN_CTX *ctx,
+                                       int (*bn_mod_exp) (BIGNUM *r,
+                                                          const BIGNUM *a,
+                                                          const BIGNUM *p,
+@@ -243,6 +244,7 @@ BN_BLINDING *BN_BLINDING_create_param(BN_BLINDING *b,
+ {
+     int retry_counter = 32;
+     BN_BLINDING *ret = NULL;
++    BIGNUM* lenstra = NULL;
+ 
+     if (b == NULL)
+         ret = BN_BLINDING_new(NULL, NULL, m);
+@@ -288,18 +290,61 @@ BN_BLINDING *BN_BLINDING_create_param(BN_BLINDING *b,
+         }
+     } while (1);
+ 
+-    if (ret->bn_mod_exp != NULL && ret->m_ctx != NULL) {
+-        if (!ret->bn_mod_exp(ret->A, ret->A, ret->e, ret->mod, ctx, ret->m_ctx))
+-            goto err;
+-    } else {
+-        if (!BN_mod_exp(ret->A, ret->A, ret->e, ret->mod, ctx))
+-            goto err;
++    if (isPrivate) {
++       lenstra = BN_new();
++       if (lenstra == NULL)
++          goto err;
++
++       /*
++          A = u = r
++          Ai = v = ((r ^ (-1)) ^ d) mod n
++       */
++
++       /* repeat private key op for Lenstra check */
++       if (ret->bn_mod_exp != NULL && ret->m_ctx != NULL) {
++          if (!ret->bn_mod_exp(lenstra, ret->Ai, ret->e, ret->mod, ctx, ret->m_ctx))
++             goto err;
++       }
++       else {
++          if (!BN_mod_exp(lenstra, ret->Ai, ret->e, ret->mod, ctx))
++             goto err;
++       }
++       /* now the real one */
++       if (ret->bn_mod_exp != NULL && ret->m_ctx != NULL) {
++          if (!ret->bn_mod_exp(ret->Ai, ret->Ai, ret->e, ret->mod, ctx, ret->m_ctx))
++             goto err;
++       }
++       else {
++          if (!BN_mod_exp(ret->Ai, ret->Ai, ret->e, ret->mod, ctx))
++             goto err;
++       }
++       if (BN_cmp(lenstra, ret->Ai) != 0) {
++          /* error */
++          goto err;
++       }
++       BN_free(lenstra);
++       lenstra = NULL;
+     }
+-
+-    if (ret->m_ctx != NULL) {
+-        if (!bn_to_mont_fixed_top(ret->Ai, ret->Ai, ret->m_ctx, ctx)
+-            || !bn_to_mont_fixed_top(ret->A, ret->A, ret->m_ctx, ctx))
+-            goto err;
++    else {
++       /*
++          A  = u = r ^ e mod n
++          Ai = v = r ^ (-1) mod n
++       */
++
++       if (ret->bn_mod_exp != NULL && ret->m_ctx != NULL) {
++          if (!ret->bn_mod_exp(ret->A, ret->A, ret->e, ret->mod, ctx, ret->m_ctx))
++             goto err;
++       }
++       else {
++          if (!BN_mod_exp(ret->A, ret->A, ret->e, ret->mod, ctx))
++             goto err;
++       }
++
++       if (ret->m_ctx != NULL) {
++          if (!bn_to_mont_fixed_top(ret->Ai, ret->Ai, ret->m_ctx, ctx)
++             || !bn_to_mont_fixed_top(ret->A, ret->A, ret->m_ctx, ctx))
++             goto err;
++       }
+     }
+ 
+     return ret;
+@@ -309,5 +354,6 @@ BN_BLINDING *BN_BLINDING_create_param(BN_BLINDING *b,
+         ret = NULL;
+     }
+ 
++    if (lenstra) BN_free(lenstra);
+     return ret;
+ }
+diff --git a/crypto/rsa/rsa_crpt.c b/crypto/rsa/rsa_crpt.c
+index f1131ce..bf50922 100644
+--- a/crypto/rsa/rsa_crpt.c
++++ b/crypto/rsa/rsa_crpt.c
+@@ -110,6 +110,7 @@ static BIGNUM *rsa_get_public_exp(const BIGNUM *d, const BIGNUM *p,
+ BN_BLINDING *RSA_setup_blinding(RSA *rsa, BN_CTX *in_ctx)
+ {
+     BIGNUM *e;
++    int privExp = 0;
+     BN_CTX *ctx;
+     BN_BLINDING *ret = NULL;
+ 
+@@ -130,8 +131,9 @@ BN_BLINDING *RSA_setup_blinding(RSA *rsa, BN_CTX *in_ctx)
+     if (rsa->e == NULL) {
+         e = rsa_get_public_exp(rsa->d, rsa->p, rsa->q, ctx);
+         if (e == NULL) {
+-            RSAerr(RSA_F_RSA_SETUP_BLINDING, RSA_R_NO_PUBLIC_EXPONENT);
+-            goto err;
++            /* we can use the private exponent for blinding instead */
++            privExp = 1;
++            e = rsa->d;
+         }
+     } else {
+         e = rsa->e;
+@@ -146,8 +148,8 @@ BN_BLINDING *RSA_setup_blinding(RSA *rsa, BN_CTX *in_ctx)
+         }
+         BN_with_flags(n, rsa->n, BN_FLG_CONSTTIME);
+ 
+-        ret = BN_BLINDING_create_param(NULL, e, n, ctx, rsa->meth->bn_mod_exp,
+-                                       rsa->_method_mod_n);
++        ret = BN_BLINDING_create_param(NULL, e, privExp, n, ctx, rsa->meth->bn_mod_exp,
++            rsa->_method_mod_n);
+         /* We MUST free n before any further use of rsa->n */
+         BN_free(n);
+     }
+@@ -156,13 +158,17 @@ BN_BLINDING *RSA_setup_blinding(RSA *rsa, BN_CTX *in_ctx)
+         goto err;
+     }
+ 
++    if (privExp) {
++       /* we need to know for other operations */
++       BN_BLINDING_set_flags(ret, BN_BLINDING_get_flags(ret) | BN_FLG_PRIVATE_EXP);
++    }
+     BN_BLINDING_set_current_thread(ret);
+ 
+  err:
+     BN_CTX_end(ctx);
+     if (ctx != in_ctx)
+         BN_CTX_free(ctx);
+-    if (e != rsa->e)
++    if (e != (privExp?rsa->d:rsa->e))
+         BN_free(e);
+ 
+     return ret;
+diff --git a/crypto/rsa/rsa_ossl.c b/crypto/rsa/rsa_ossl.c
+index b52a66f..0c5319c 100644
+--- a/crypto/rsa/rsa_ossl.c
++++ b/crypto/rsa/rsa_ossl.c
+@@ -229,13 +229,28 @@ static int rsa_blinding_invert(BN_BLINDING *b, BIGNUM *f, BIGNUM *unblind,
+     return BN_BLINDING_invert_ex(f, unblind, b, ctx);
+ }
+ 
++/*
++* CHECK_BLINDING was for debugging private exponent blinding.
++* if set then an unblinded result is also generated and compared with the blinded.
++* obviously that is _DEBUG only
++*/
++#ifdef _DEBUG
++#define CHECK_BLINDING
++#endif
++
+ /* signing */
+ static int rsa_ossl_private_encrypt(int flen, const unsigned char *from,
+                                    unsigned char *to, RSA *rsa, int padding)
+ {
+-    BIGNUM *f, *ret, *res;
+-    int i, num = 0, r = -1;
+-    unsigned char *buf = NULL;
++    BIGNUM* f; /* from copy */
++#ifdef CHECK_BLINDING
++    BIGNUM *f2, *ret_f2; /* unblinded */
++#endif
++    BIGNUM* ret, *ret2; /* RSA result prior to padding, gets copied to 'res' with padding */
++    BIGNUM* res; /* result, gets copied to 'to' with length padding */
++    int i, num = 0;
++    int r = -1; /* return status */
++    unsigned char *buf = NULL; /* padding buffer */
+     BN_CTX *ctx = NULL;
+     int local_blinding = 0;
+     /*
+@@ -250,10 +265,15 @@ static int rsa_ossl_private_encrypt(int flen, const unsigned char *from,
+         goto err;
+     BN_CTX_start(ctx);
+     f = BN_CTX_get(ctx);
++#ifdef CHECK_BLINDING
++    f2 = BN_CTX_get(ctx);
++    ret_f2 = BN_CTX_get(ctx);
++#endif
+     ret = BN_CTX_get(ctx);
++    ret2 = BN_CTX_get(ctx); /* used for Lenstra check */
+     num = BN_num_bytes(rsa->n);
+     buf = OPENSSL_malloc(num);
+-    if (ret == NULL || buf == NULL) {
++    if (ret == NULL || ret2 == NULL || buf == NULL) {
+         RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, ERR_R_MALLOC_FAILURE);
+         goto err;
+     }
+@@ -278,6 +298,10 @@ static int rsa_ossl_private_encrypt(int flen, const unsigned char *from,
+ 
+     if (BN_bin2bn(buf, num, f) == NULL)
+         goto err;
++#ifdef CHECK_BLINDING
++    if (BN_bin2bn(buf, num, f2) == NULL)
++       goto err;
++#endif
+ 
+     if (BN_ucmp(f, rsa->n) >= 0) {
+         /* usually the padding functions would catch this */
+@@ -309,37 +333,75 @@ static int rsa_ossl_private_encrypt(int flen, const unsigned char *from,
+     }
+ 
+     if ((rsa->flags & RSA_FLAG_EXT_PKEY) ||
+-        (rsa->version == RSA_ASN1_VERSION_MULTI) ||
+-        ((rsa->p != NULL) &&
+-         (rsa->q != NULL) &&
+-         (rsa->dmp1 != NULL) && (rsa->dmq1 != NULL) && (rsa->iqmp != NULL))) {
+-        if (!rsa->meth->rsa_mod_exp(ret, f, rsa, ctx))
+-            goto err;
+-    } else {
+-        BIGNUM *d = BN_new();
+-        if (d == NULL) {
+-            RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, ERR_R_MALLOC_FAILURE);
+-            goto err;
+-        }
+-        if (rsa->d == NULL) {
+-            RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_MISSING_PRIVATE_KEY);
+-            BN_free(d);
+-            goto err;
+-        }
+-        BN_with_flags(d, rsa->d, BN_FLG_CONSTTIME);
+-
+-        if (!rsa->meth->bn_mod_exp(ret, f, d, rsa->n, ctx,
+-                                   rsa->_method_mod_n)) {
+-            BN_free(d);
+-            goto err;
+-        }
+-        /* We MUST free d before any further use of rsa->d */
+-        BN_free(d);
++       (rsa->version == RSA_ASN1_VERSION_MULTI) ||
++       ((rsa->p != NULL) &&
++          (rsa->q != NULL) &&
++          (rsa->dmp1 != NULL) && (rsa->dmq1 != NULL) && (rsa->iqmp != NULL))) {
++       /* always have 'e' in this code path */
++       if (!rsa->meth->rsa_mod_exp(ret, f, rsa, ctx)) {
++          goto err;
++       }
++       /* Lenstra check for fault analysis mitigation */
++       if (!rsa->meth->bn_mod_exp(ret2, ret, rsa->e, rsa->n, ctx, rsa->_method_mod_n)) {
++          goto err;
++       }
++       if (BN_cmp(f, ret2) != 0) {
++          /* error */
++          goto err;
++       }
++#ifdef CHECK_BLINDING
++       if (!rsa->meth->rsa_mod_exp(ret_f2, f2, rsa, ctx)) {
++          goto err;
++       }
++#endif
++    }
++    else {
++       BIGNUM* d = BN_new();
++       if (d == NULL) {
++          RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, ERR_R_MALLOC_FAILURE);
++          goto err;
++       }
++       if (rsa->d == NULL) {
++          RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_MISSING_PRIVATE_KEY);
++          BN_free(d);
++          goto err;
++       }
++       BN_with_flags(d, rsa->d, BN_FLG_CONSTTIME);
++
++       if (!rsa->meth->bn_mod_exp(ret, f, d, rsa->n, ctx, rsa->_method_mod_n)) {
++          BN_free(d);
++          goto err;
++       }
++       /* repeat private key op for Lenstra check */
++       if (!rsa->meth->bn_mod_exp(ret2, f, d, rsa->n, ctx, rsa->_method_mod_n)) {
++          BN_free(d);
++          goto err;
++       }
++       if (BN_cmp(ret, ret2) != 0) {
++          /* error */
++          BN_free(d);
++          goto err;
++       }
++#ifdef CHECK_BLINDING
++       if (!rsa->meth->bn_mod_exp(ret_f2, f2, d, rsa->n, ctx, rsa->_method_mod_n)) {
++          BN_free(d);
++          goto err;
++       }
++#endif
++       /* We MUST free d before any further use of rsa->d */
++       BN_free(d);
+     }
+ 
+-    if (blinding)
+-        if (!rsa_blinding_invert(blinding, ret, unblind, ctx))
+-            goto err;
++    if (blinding) {
++       if (!rsa_blinding_invert(blinding, ret, unblind, ctx))
++          goto err;
++#ifdef CHECK_BLINDING
++       if (BN_cmp(ret, ret_f2) != 0) {
++          /* error */
++          goto err;
++       }
++#endif
++    }
+ 
+     if (padding == RSA_X931_PADDING) {
+         if (!BN_sub(f, rsa->n, ret))
+@@ -367,8 +429,14 @@ static int rsa_ossl_private_encrypt(int flen, const unsigned char *from,
+ static int rsa_ossl_private_decrypt(int flen, const unsigned char *from,
+                                    unsigned char *to, RSA *rsa, int padding)
+ {
+-    BIGNUM *f, *ret;
+-    int j, num = 0, r = -1;
++    BIGNUM* f; /* from copy */
++#ifdef CHECK_BLINDING
++    BIGNUM* f2, * ret_f2; /* unblinded */
++#endif
++    BIGNUM* ret, * ret2; /* RSA result prior to padding, gets copied to 'res' with padding */
++    BIGNUM* res; /* result, gets copied to 'to' with length padding */
++    int j, num = 0;
++    int r = -1; /* return status */
+     unsigned char *buf = NULL;
+     BN_CTX *ctx = NULL;
+     int local_blinding = 0;
+@@ -384,10 +452,15 @@ static int rsa_ossl_private_decrypt(int flen, const unsigned char *from,
+         goto err;
+     BN_CTX_start(ctx);
+     f = BN_CTX_get(ctx);
++#ifdef CHECK_BLINDING
++    f2 = BN_CTX_get(ctx);
++    ret_f2 = BN_CTX_get(ctx);
++#endif
+     ret = BN_CTX_get(ctx);
++    ret2 = BN_CTX_get(ctx); /* used for Lenstra check */
+     num = BN_num_bytes(rsa->n);
+     buf = OPENSSL_malloc(num);
+-    if (ret == NULL || buf == NULL) {
++    if (ret == NULL || ret2 == NULL || buf == NULL) {
+         RSAerr(RSA_F_RSA_OSSL_PRIVATE_DECRYPT, ERR_R_MALLOC_FAILURE);
+         goto err;
+     }
+@@ -405,6 +478,10 @@ static int rsa_ossl_private_decrypt(int flen, const unsigned char *from,
+     /* make data into a big number */
+     if (BN_bin2bn(from, (int)flen, f) == NULL)
+         goto err;
++#ifdef CHECK_BLINDING
++    if (BN_bin2bn(from, (int)flen, f2) == NULL)
++       goto err;
++#endif
+ 
+     if (BN_ucmp(f, rsa->n) >= 0) {
+         RSAerr(RSA_F_RSA_OSSL_PRIVATE_DECRYPT,
+@@ -431,43 +508,83 @@ static int rsa_ossl_private_decrypt(int flen, const unsigned char *from,
+ 
+     /* do the decrypt */
+     if ((rsa->flags & RSA_FLAG_EXT_PKEY) ||
+-        (rsa->version == RSA_ASN1_VERSION_MULTI) ||
+-        ((rsa->p != NULL) &&
+-         (rsa->q != NULL) &&
+-         (rsa->dmp1 != NULL) && (rsa->dmq1 != NULL) && (rsa->iqmp != NULL))) {
+-        if (!rsa->meth->rsa_mod_exp(ret, f, rsa, ctx))
+-            goto err;
+-    } else {
+-        BIGNUM *d = BN_new();
+-        if (d == NULL) {
+-            RSAerr(RSA_F_RSA_OSSL_PRIVATE_DECRYPT, ERR_R_MALLOC_FAILURE);
+-            goto err;
+-        }
+-        if (rsa->d == NULL) {
+-            RSAerr(RSA_F_RSA_OSSL_PRIVATE_DECRYPT, RSA_R_MISSING_PRIVATE_KEY);
+-            BN_free(d);
+-            goto err;
+-        }
+-        BN_with_flags(d, rsa->d, BN_FLG_CONSTTIME);
+-
+-        if (rsa->flags & RSA_FLAG_CACHE_PUBLIC)
+-            if (!BN_MONT_CTX_set_locked(&rsa->_method_mod_n, rsa->lock,
+-                                        rsa->n, ctx)) {
+-                BN_free(d);
+-                goto err;
+-            }
+-        if (!rsa->meth->bn_mod_exp(ret, f, d, rsa->n, ctx,
+-                                   rsa->_method_mod_n)) {
+-            BN_free(d);
+-            goto err;
+-        }
+-        /* We MUST free d before any further use of rsa->d */
+-        BN_free(d);
++       (rsa->version == RSA_ASN1_VERSION_MULTI) ||
++       ((rsa->p != NULL) &&
++          (rsa->q != NULL) &&
++          (rsa->dmp1 != NULL) && (rsa->dmq1 != NULL) && (rsa->iqmp != NULL))) {
++       /* always have 'e' in this code path */
++       if (!rsa->meth->rsa_mod_exp(ret, f, rsa, ctx)) {
++          goto err;
++       }
++       /* Lenstra check for fault analysis mitigation */
++       /* just checking mod-exp so blinding will not effect this test */
++       if (!rsa->meth->bn_mod_exp(ret2, ret, rsa->e, rsa->n, ctx, rsa->_method_mod_n)) {
++          goto err;
++       }
++       if (BN_cmp(f, ret2) != 0) {
++          /* error */
++          goto err;
++       }
++#ifdef CHECK_BLINDING
++       if (!rsa->meth->rsa_mod_exp(ret_f2, f2, rsa, ctx)) {
++          goto err;
++       }
++#endif
++    }
++    else {
++       BIGNUM* d = BN_new();
++       if (d == NULL) {
++          RSAerr(RSA_F_RSA_OSSL_PRIVATE_DECRYPT, ERR_R_MALLOC_FAILURE);
++          goto err;
++       }
++       if (rsa->d == NULL) {
++          RSAerr(RSA_F_RSA_OSSL_PRIVATE_DECRYPT, RSA_R_MISSING_PRIVATE_KEY);
++          BN_free(d);
++          goto err;
++       }
++       BN_with_flags(d, rsa->d, BN_FLG_CONSTTIME);
++
++       if (rsa->flags & RSA_FLAG_CACHE_PUBLIC)
++          if (!BN_MONT_CTX_set_locked(&rsa->_method_mod_n, rsa->lock,
++             rsa->n, ctx)) {
++             BN_free(d);
++             goto err;
++          }
++       if (!rsa->meth->bn_mod_exp(ret, f, d, rsa->n, ctx, rsa->_method_mod_n)) {
++          BN_free(d);
++          goto err;
++       }
++       /* repeat private key op for Lenstra check */
++       if (!rsa->meth->bn_mod_exp(ret2, f, d, rsa->n, ctx, rsa->_method_mod_n)) {
++          BN_free(d);
++          goto err;
++       }
++       if (BN_cmp(ret, ret2) != 0) {
++          /* error */
++          BN_free(d);
++          goto err;
++       }
++#ifdef CHECK_BLINDING
++       if (!rsa->meth->bn_mod_exp(ret_f2, f2, d, rsa->n, ctx, rsa->_method_mod_n)) {
++          BN_free(d);
++          goto err;
++       }
++#endif
++       /* We MUST free d before any further use of rsa->d */
++       BN_free(d);
+     }
+ 
+-    if (blinding)
+-        if (!rsa_blinding_invert(blinding, ret, unblind, ctx))
+-            goto err;
++    if (blinding) {
++       if (!rsa_blinding_invert(blinding, ret, unblind, ctx)) {
++          goto err;
++       }
++#ifdef CHECK_BLINDING
++       if (BN_cmp(ret, ret_f2) != 0) {
++          /* error */
++          goto err;
++       }
++#endif
++    }
+ 
+     j = BN_bn2binpad(ret, buf, num);
+ 
+diff --git a/include/openssl/bn.h b/include/openssl/bn.h
+index 730e607..9be1f32 100644
+--- a/include/openssl/bn.h
++++ b/include/openssl/bn.h
+@@ -60,6 +60,7 @@ extern "C" {
+  */
+ # define BN_FLG_CONSTTIME        0x04
+ # define BN_FLG_SECURE           0x08
++# define BN_FLG_PRIVATE_EXP      0x10
+ 
+ # if OPENSSL_API_COMPAT < 0x00908000L
+ /* deprecated name for the flag */
+@@ -392,7 +393,7 @@ int BN_BLINDING_unlock(BN_BLINDING *b);
+ unsigned long BN_BLINDING_get_flags(const BN_BLINDING *);
+ void BN_BLINDING_set_flags(BN_BLINDING *, unsigned long);
+ BN_BLINDING *BN_BLINDING_create_param(BN_BLINDING *b,
+-                                      const BIGNUM *e, BIGNUM *m, BN_CTX *ctx,
++                                      const BIGNUM *e, int isPrivate, BIGNUM *m, BN_CTX *ctx,
+                                       int (*bn_mod_exp) (BIGNUM *r,
+                                                          const BIGNUM *a,
+                                                          const BIGNUM *p,

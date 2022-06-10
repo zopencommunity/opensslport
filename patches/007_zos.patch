@@ -1,0 +1,76 @@
+diff --git a/crypto/mem_sec.c b/crypto/mem_sec.c
+index 222c786..eefb795 100644
+--- a/crypto/mem_sec.c
++++ b/crypto/mem_sec.c
+@@ -40,7 +40,11 @@
+ # if !defined(MAP_CONCEAL)
+ #  define MAP_CONCEAL 0
+ # endif
++
++
++# if !defined(__MVS__)
+ # include <sys/param.h>
++#endif
+ # include <sys/stat.h>
+ # include <fcntl.h>
+ #endif
+@@ -53,6 +57,12 @@
+ # define MAP_ANON MAP_ANONYMOUS
+ #endif
+ 
++#if defined(__MVS__)
++# if !defined(MAP_FAILED)
++#  define MAP_FAILED      ((void *) -1)
++# endif
++#endif
++
+ #ifdef OPENSSL_SECURE_MEMORY
+ static size_t secure_mem_used;
+ 
+@@ -429,28 +439,28 @@ static int sh_init(size_t size, int minsize)
+         goto err;
+ 
+     /* Allocate space for heap, and two extra pages as guards */
+-#if defined(_SC_PAGE_SIZE) || defined (_SC_PAGESIZE)
++# if defined(_SC_PAGE_SIZE) || defined (_SC_PAGESIZE)
+     {
+-# if defined(_SC_PAGE_SIZE)
++#  if defined(_SC_PAGE_SIZE)
+         long tmppgsize = sysconf(_SC_PAGE_SIZE);
+-# else
++#  else
+         long tmppgsize = sysconf(_SC_PAGESIZE);
+-# endif
++#  endif
+         if (tmppgsize < 1)
+             pgsize = PAGE_SIZE;
+         else
+             pgsize = (size_t)tmppgsize;
+     }
+-#else
++#  else
+     pgsize = PAGE_SIZE;
+-#endif
++# endif
+     sh.map_size = pgsize + sh.arena_size + pgsize;
+     if (1) {
+-#ifdef MAP_ANON
++# ifdef MAP_ANON
+         sh.map_result = mmap(NULL, sh.map_size,
+                              PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE|MAP_CONCEAL, -1, 0);
+     } else {
+-#endif
++# endif
+         int fd;
+ 
+         sh.map_result = MAP_FAILED;
+@@ -487,6 +497,9 @@ static int sh_init(size_t size, int minsize)
+             ret = 2;
+         }
+     }
++#elif defined(__MVS__)
++    if (__mlockall(_BPX_NONSWAP) < 0)
++      ret = 2;
+ #else
+     if (mlock(sh.arena, sh.arena_size) < 0)
+         ret = 2;

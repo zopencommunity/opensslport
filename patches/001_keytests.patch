@@ -1,0 +1,65 @@
+diff --git a/crypto/evp/e_des3.c b/crypto/evp/e_des3.c
+index 2a5597f..12dc87c 100644
+--- a/crypto/evp/e_des3.c
++++ b/crypto/evp/e_des3.c
+@@ -228,6 +228,7 @@ static int des_ede_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+     DES_cblock *deskey = (DES_cblock *)key;
+     DES_EDE_KEY *dat = data(ctx);
+ 
++
+     dat->stream.cbc = NULL;
+ # if defined(SPARC_DES_CAPABLE)
+     if (SPARC_DES_CAPABLE) {
+@@ -255,6 +256,12 @@ static int des_ede3_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+     DES_cblock *deskey = (DES_cblock *)key;
+     DES_EDE_KEY *dat = data(ctx);
+ 
++    if((0 == CRYPTO_memcmp(&deskey[0],&deskey[1],8)) ||
++       (0 == CRYPTO_memcmp(&deskey[0],&deskey[2],8)) ||
++       (0 == CRYPTO_memcmp(&deskey[1],&deskey[2],8))
++    ) {
++       return 0;        
++    }
+     dat->stream.cbc = NULL;
+ # if defined(SPARC_DES_CAPABLE)
+     if (SPARC_DES_CAPABLE) {
+diff --git a/crypto/evp/evp_err.c b/crypto/evp/evp_err.c
+index 32ac012..4cd5b08 100644
+--- a/crypto/evp/evp_err.c
++++ b/crypto/evp/evp_err.c
+@@ -157,6 +157,7 @@ static const ERR_STRING_DATA EVP_str_functs[] = {
+      "r_32_12_16_init_key"},
+     {ERR_PACK(ERR_LIB_EVP, EVP_F_S390X_AES_GCM_CTRL, 0), "s390x_aes_gcm_ctrl"},
+     {ERR_PACK(ERR_LIB_EVP, EVP_F_UPDATE, 0), "update"},
++    {ERR_PACK(ERR_LIB_EVP, EVP_F_AES_XTS_CIPHER,0),"AES_XTS_CIPHER"},
+     {0, NULL}
+ };
+ 
+@@ -278,6 +279,7 @@ static const ERR_STRING_DATA EVP_str_reasons[] = {
+     "wrong final block length"},
+     {ERR_PACK(ERR_LIB_EVP, 0, EVP_R_XTS_DUPLICATED_KEYS),
+     "xts duplicated keys"},
++    {ERR_PACK(ERR_LIB_EVP,0,EVP_R_TOO_LARGE),"too large"},
+     {0, NULL}
+ };
+ 
+diff --git a/include/openssl/evperr.h b/include/openssl/evperr.h
+index b4ea90a..6112d76 100644
+--- a/include/openssl/evperr.h
++++ b/include/openssl/evperr.h
+@@ -123,7 +123,7 @@ int ERR_load_EVP_strings(void);
+ # define EVP_F_R_32_12_16_INIT_KEY                        242
+ # define EVP_F_S390X_AES_GCM_CTRL                         201
+ # define EVP_F_UPDATE                                     173
+-
++# define EVP_F_AES_XTS_CIPHER                             207
+ /*
+  * EVP reason codes.
+  */
+@@ -200,5 +200,6 @@ int ERR_load_EVP_strings(void);
+ # define EVP_R_WRAP_MODE_NOT_ALLOWED                      170
+ # define EVP_R_WRONG_FINAL_BLOCK_LENGTH                   109
+ # define EVP_R_XTS_DUPLICATED_KEYS                        183
++# define EVP_R_TOO_LARGE                                  208
+ 
+ #endif

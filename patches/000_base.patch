@@ -1,0 +1,630 @@
+diff --git a/crypto/armcap.c b/crypto/armcap.c
+index 48c5d4d..e129613 100644
+--- a/crypto/armcap.c
++++ b/crypto/armcap.c
+@@ -246,4 +246,21 @@ void OPENSSL_cpuid_setup(void)
+     sigaction(SIGILL, &ill_oact, NULL);
+     sigprocmask(SIG_SETMASK, &oset, NULL);
+ }
++
++int OPENSSL_cpuid(long long *id)
++{
++  OPENSSL_cpuid_setup();
++  *id = (long long)OPENSSL_armcap_P;
++  return 1;
++}
++#define ARM_ALLOWED_MASK_BITS ( ARMV7_TICK | ARMV8_AES | ARMV8_SHA1 | ARMV8_SHA256 | ARMV8_PMULL)
++int OPENSSL_cpuid_override(long long mask)
++{
++  long long cap = 0;
++  OPENSSL_cpuid(&cap);
++  mask |= (~ARM_ALLOWED_MASK_BITS);
++  OPENSSL_armcap_P &= (unsigned int)mask;
++  return 1;
++}
++
+ #endif
+diff --git a/crypto/bio/bio_lib.c b/crypto/bio/bio_lib.c
+index d2202e5..3d40dfe 100644
+--- a/crypto/bio/bio_lib.c
++++ b/crypto/bio/bio_lib.c
+@@ -776,6 +776,7 @@ void bio_free_ex_data(BIO *bio)
+ 
+ void bio_cleanup(void)
+ {
++#if 0
+ #ifndef OPENSSL_NO_SOCK
+     bio_sock_cleanup_int();
+     CRYPTO_THREAD_lock_free(bio_lookup_lock);
+@@ -783,4 +784,5 @@ void bio_cleanup(void)
+ #endif
+     CRYPTO_THREAD_lock_free(bio_type_lock);
+     bio_type_lock = NULL;
++#endif
+ }
+diff --git a/crypto/bn/bn_x931p.c b/crypto/bn/bn_x931p.c
+index 0099502..450c42e 100644
+--- a/crypto/bn/bn_x931p.c
++++ b/crypto/bn/bn_x931p.c
+@@ -165,7 +165,7 @@ int BN_X931_generate_Xpq(BIGNUM *Xp, BIGNUM *Xq, int nbits, BN_CTX *ctx)
+      * Number of bits for each prime is of the form 512+128s for s = 0, 1,
+      * ...
+      */
+-    if ((nbits < 1024) || (nbits & 0xff))
++    if ((nbits < 512) || (nbits & 0xff))
+         return 0;
+     nbits >>= 1;
+     /*
+@@ -218,6 +218,8 @@ int BN_X931_generate_prime_ex(BIGNUM *p, BIGNUM *p1, BIGNUM *p2,
+                               const BIGNUM *e, BN_CTX *ctx, BN_GENCB *cb)
+ {
+     int ret = 0;
++    int l = 0;
++    int rbits = 101;
+ 
+     BN_CTX_start(ctx);
+     if (Xp1 == NULL)
+@@ -226,10 +228,18 @@ int BN_X931_generate_prime_ex(BIGNUM *p, BIGNUM *p1, BIGNUM *p2,
+         Xp2 = BN_CTX_get(ctx);
+     if (Xp1 == NULL || Xp2 == NULL)
+         goto error;
+-
+-    if (!BN_priv_rand(Xp1, 101, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ANY))
++    l = BN_num_bits(Xp);
++    if(l > 1536) {
++      rbits = 201;
++    } else if (l > 1024) {
++      rbits = 171;
++    } else if (l > 512) {
++      rbits = 141;
++    } 
++
++    if (!BN_priv_rand(Xp1, rbits, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ANY))
+         goto error;
+-    if (!BN_priv_rand(Xp2, 101, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ANY))
++    if (!BN_priv_rand(Xp2, rbits, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ANY))
+         goto error;
+     if (!BN_X931_derive_prime_ex(p, p1, p2, Xp, Xp1, Xp2, e, ctx, cb))
+         goto error;
+diff --git a/crypto/cryptlib.c b/crypto/cryptlib.c
+index 1f36b20..bbb2159 100644
+--- a/crypto/cryptlib.c
++++ b/crypto/cryptlib.c
+@@ -20,6 +20,7 @@ extern unsigned int OPENSSL_ia32cap_P[4];
+ 
+ # if defined(OPENSSL_CPUID_OBJ) && !defined(OPENSSL_NO_ASM) && !defined(I386_ONLY)
+ 
++
+ /*
+  * Purpose of these minimalistic and character-type-agnostic subroutines
+  * is to break dependency on MSVCRT (on Windows) and locale. This makes
+@@ -32,6 +33,7 @@ extern unsigned int OPENSSL_ia32cap_P[4];
+ #  ifdef _WIN32
+ typedef WCHAR variant_char;
+ 
++
+ static variant_char *ossl_getenv(const char *name)
+ {
+     /*
+@@ -93,6 +95,10 @@ static variant_char *ossl_strchr(const variant_char *str, char srch)
+ 
+ #  define OPENSSL_CPUID_SETUP
+ typedef uint64_t IA32CAP;
++extern IA32CAP OPENSSL_ia32_cpuid(unsigned int *v);
++extern unsigned long OPENSSL_ia32_rdrand();
++extern unsigned long OPENSSL_ia32_rdseed();
++extern unsigned long OPENSSL_rdtsc();
+ 
+ void OPENSSL_cpuid_setup(void)
+ {
+@@ -471,3 +477,135 @@ size_t OPENSSL_instrument_bus2(unsigned int *out, size_t cnt, size_t max)
+     return 0;
+ }
+ #endif
++
++/* X86 Linux and Windows, but not Solaris */
++#if     (defined(__i386)   || defined(__i386__)   || defined(_M_IX86) || \
++         defined(__INTEL__) ||                                          \
++         defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64) \
++         ) &&                                           \
++         !(defined(__SunOS) && !defined(__amd64) )
++
++/* AESNI bit only */
++#define IA32_ALLOWED_MASK_BITS 0x4200000000000000
++int OPENSSL_cpuid_override(long long mask)
++{
++  union {      
++   long long cap;
++   unsigned int icap[2];
++   } u;
++   u.cap = 0;
++   OPENSSL_cpuid_setup();
++   if(NULL == getenv("OPENSSL_ia32cap")) {
++     /* turn off the bits we'll allow to be turned off */
++     mask |= (~IA32_ALLOWED_MASK_BITS);
++     u.cap = OPENSSL_ia32_cpuid(OPENSSL_ia32cap_P);
++     u.cap &= mask;
++     OPENSSL_ia32cap_P[0] = u.icap[0];
++     OPENSSL_ia32cap_P[1] = u.icap[1];    
++  }
++  return 1;
++}
++/*! @brief get the CPUID for any platform 
++    @param id a pointer to a long long 
++    @return 1 if CPUID is valid, 0 otherwise
++*/
++int OPENSSL_cpuid(long long *id)
++{
++  OPENSSL_cpuid_setup(); 
++  *id = (long long)OPENSSL_ia32_cpuid(OPENSSL_ia32cap_P);
++  return 1;
++}
++
++#elif defined(__s390x__)  || defined(__s390__) 
++/* S390x/S390 does have a minimal CPUID */
++/* Handled inside s390xcap.c */
++
++#elif ( defined(OPENSSL_SYSNAME_ULTRASPARC) )
++/* Handled inside sparcv9cap.c */
++#elif defined(__ppc__) || defined(__powerpc__) || defined(_AIX)
++/* Handled inside ppccap.c */
++#elif (defined(__ARMEB__) || defined(__ARMEL__) || defined(__aarch64__))
++/* Handled inside armcap.c */
++#else
++/*
++   And if there's no real CPUID support, just provide
++   placeholders for the generic interface
++*/
++int OPENSSL_cpuid_override(long long mask) 
++{
++  return 0;
++}
++int OPENSSL_cpuid(long long *id)
++{
++  return 0;
++}
++#endif
++/* X86 Linux and Windows, Solaris x86 */
++#if     (defined(__i386)   || defined(__i386__)   || defined(_M_IX86) || \
++         defined(__INTEL__) ||                                          \
++         defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64) ) && ( !(defined(__SunOS) && !defined(__amd64)) \
++         )
++
++
++
++/*! @brief Access HW random number generator for all platforms
++    @param buf is a pointer to a buffer or NULL
++    @return if buf is NULL, returns the number of bytes returned on a
++    non-NULL call. 0 means no HW rand support
++    If non-NULL also returns the number of bytes, or 0 on a HW error
++    @notes assumes CPUID has already been setup
++*/
++
++int OPENSSL_HW_rand(unsigned char *buf)
++{
++  int rv = 0;
++  
++  size_t rnd = 0;
++  if( ( OPENSSL_ia32cap_P[1] &   0x40000000) ) {
++    /* The above check is just so we can disable use of the HW sources 
++      our CAP_MASK doesn't cope well with 128 bits, so if RDrand() is off
++      turn RDseed() off as well 
++    */
++    if( OPENSSL_ia32cap_P[2] &   0x00040000) {
++     /* Check for RDSeed available */
++     rv = 4;
++     if(NULL != buf) {
++            rnd = OPENSSL_ia32_rdseed();
++            memcpy(buf,&rnd ,4);
++     }
++    } 
++    if( (0 == rnd) && ( OPENSSL_ia32cap_P[1] &   0x40000000) ) {
++      /* Check for RDrand available */
++      rv = 4;
++      if(NULL != buf) {
++        rnd = OPENSSL_ia32_rdrand();
++        memcpy(buf,&rnd ,4);
++      }
++    }  
++  }
++  return rv;
++}
++
++
++#else
++int OPENSSL_HW_rand(unsigned char *buf)
++{
++  return 0;
++}
++#endif
++
++#if  defined( __SunOS ) && defined( __i386 ) && !defined( __amd64 )
++unsigned long OPENSSL_rdtscX() { return 0L; }
++#elif defined(__aarch64__)
++unsigned long OPENSSL_rdtscX() { return 0L; }
++#else
++unsigned long OPENSSL_rdtscX() 
++{
++  return OPENSSL_rdtsc();
++}
++#endif
++
++unsigned int OPENSSL_cpuidX(unsigned char *buf)
++{
++  return 0;
++}
+diff --git a/crypto/ec/ec_lib.c b/crypto/ec/ec_lib.c
+index 08db89f..aff1497 100644
+--- a/crypto/ec/ec_lib.c
++++ b/crypto/ec/ec_lib.c
+@@ -93,19 +93,7 @@ void EC_pre_comp_free(EC_GROUP *group)
+ 
+ void EC_GROUP_free(EC_GROUP *group)
+ {
+-    if (!group)
+-        return;
+-
+-    if (group->meth->group_finish != 0)
+-        group->meth->group_finish(group);
+-
+-    EC_pre_comp_free(group);
+-    BN_MONT_CTX_free(group->mont_data);
+-    EC_POINT_free(group->generator);
+-    BN_free(group->order);
+-    BN_free(group->cofactor);
+-    OPENSSL_free(group->seed);
+-    OPENSSL_free(group);
++    EC_GROUP_clear_free(group);
+ }
+ 
+ void EC_GROUP_clear_free(EC_GROUP *group)
+@@ -679,12 +667,7 @@ EC_POINT *EC_POINT_new(const EC_GROUP *group)
+ 
+ void EC_POINT_free(EC_POINT *point)
+ {
+-    if (!point)
+-        return;
+-
+-    if (point->meth->point_finish != 0)
+-        point->meth->point_finish(point);
+-    OPENSSL_free(point);
++     EC_POINT_clear_free(point);
+ }
+ 
+ void EC_POINT_clear_free(EC_POINT *point)
+diff --git a/crypto/ec/ec_local.h b/crypto/ec/ec_local.h
+index 64725a9..d4b9cdf 100644
+--- a/crypto/ec/ec_local.h
++++ b/crypto/ec/ec_local.h
+@@ -7,6 +7,8 @@
+  * in the file LICENSE in the source distribution or at
+  * https://www.openssl.org/source/license.html
+  */
++#if !defined(OPENSSL_EC_LOCAL_H)
++#define OPENSSL_EC_LOCAL_H
+ 
+ #include <stdlib.h>
+ 
+@@ -739,3 +741,5 @@ static ossl_inline int ec_point_ladder_post(const EC_GROUP *group,
+ 
+     return 1;
+ }
++
++#endif
+diff --git a/crypto/evp/c_alld.c b/crypto/evp/c_alld.c
+index 16ac1b6..d4b158c 100644
+--- a/crypto/evp/c_alld.c
++++ b/crypto/evp/c_alld.c
+@@ -16,6 +16,9 @@
+ 
+ void openssl_add_all_digests_int(void)
+ {
++#ifndef OPENSSL_NO_MD2
++    EVP_add_digest(EVP_md2());
++#endif
+ #ifndef OPENSSL_NO_MD4
+     EVP_add_digest(EVP_md4());
+ #endif
+diff --git a/crypto/evp/e_aes.c b/crypto/evp/e_aes.c
+index a1d3ab9..99116ad 100644
+--- a/crypto/evp/e_aes.c
++++ b/crypto/evp/e_aes.c
+@@ -376,7 +376,7 @@ static int aesni_gcm_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+ }
+ 
+ # define aesni_gcm_cipher aes_gcm_cipher
+-static int aesni_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
++int aesni_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+                             const unsigned char *in, size_t len);
+ 
+ static int aesni_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+@@ -401,8 +401,8 @@ static int aesni_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+             EVPerr(EVP_F_AESNI_XTS_INIT_KEY, EVP_R_XTS_DUPLICATED_KEYS);
+             return 0;
+         }
++   
+ 
+-        /* key_len is two AES keys */
+         if (enc) {
+             aesni_set_encrypt_key(key, EVP_CIPHER_CTX_key_length(ctx) * 4,
+                                   &xctx->ks1.ks);
+@@ -795,7 +795,7 @@ static int aes_t4_gcm_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+ }
+ 
+ # define aes_t4_gcm_cipher aes_gcm_cipher
+-static int aes_t4_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
++int aes_t4_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+                              const unsigned char *in, size_t len);
+ 
+ static int aes_t4_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+@@ -1698,7 +1698,7 @@ static int s390x_aes_gcm_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
+             memcpy(gctx->iv, ptr, arg);
+ 
+         enc = EVP_CIPHER_CTX_encrypting(c);
+-        if (enc && RAND_bytes(gctx->iv + arg, gctx->ivlen - arg) <= 0)
++        if (enc && RAND_pseudo_bytes(gctx->iv + arg, gctx->ivlen - arg) <= 0)
+             return 0;
+ 
+         gctx->iv_gen = 1;
+@@ -1869,7 +1869,7 @@ err:
+  * ciphertext or process a TLS packet, depending on context. Returns bytes
+  * written on success. Otherwise -1 is returned. Code is big-endian.
+  */
+-static int s390x_aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
++int s390x_aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+                                 const unsigned char *in, size_t len)
+ {
+     S390X_AES_GCM_CTX *gctx = EVP_C_DATA(S390X_AES_GCM_CTX, ctx);
+@@ -3181,7 +3181,7 @@ static int aes_gcm_tls_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+     return rv;
+ }
+ 
+-static int aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
++int aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+                           const unsigned char *in, size_t len)
+ {
+     EVP_AES_GCM_CTX *gctx = EVP_C_DATA(EVP_AES_GCM_CTX,ctx);
+@@ -3478,6 +3478,12 @@ static int aes_xts_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+         return 0;
+     if (!out || !in || len < AES_BLOCK_SIZE)
+         return 0;
++    /* Requirement of SP800-38E */
++    if(len >((1UL<<20)*16) ) {
++       EVPerr(EVP_F_AES_XTS_CIPHER, EVP_R_TOO_LARGE);
++       return 0;                                  
++    }    
++
+     if (xctx->stream)
+         (*xctx->stream) (in, out, len,
+                          xctx->xts.key1, xctx->xts.key2,
+diff --git a/crypto/ppc_arch.h b/crypto/ppc_arch.h
+index e3845e9..41dd8dd 100644
+--- a/crypto/ppc_arch.h
++++ b/crypto/ppc_arch.h
+@@ -12,6 +12,102 @@
+ 
+ extern unsigned int OPENSSL_ppccap_P;
+ 
++/* Hardware capability constants for the Auxiliary Vector Library  */
++
++#ifndef _AUXV_HWCAP_H
++#define _AUXV_HWCAP_H
++
++#ifdef __powerpc__
++
++#ifndef AT_HWCAP2
++#define AT_HWCAP2 26
++#endif
++
++/* Auxiliary Vector Hardware Capability (AT_HWCAP) features for PowerPC. */
++#define PPC_FEATURE_32                 0x80000000 /* 32-bit mode. */
++#define PPC_FEATURE_64                 0x40000000 /* 64-bit mode. */
++#define PPC_FEATURE_601_INSTR          0x20000000 /* 601 chip, Old POWER ISA. */
++#define PPC_FEATURE_HAS_ALTIVEC        0x10000000 /* SIMD/Vector Unit.  */
++#define PPC_FEATURE_HAS_FPU            0x08000000 /* Floating Point Unit.  */
++#define PPC_FEATURE_HAS_MMU            0x04000000 /* Memory Management Unit.  */
++#define PPC_FEATURE_HAS_4xxMAC         0x02000000 /* 4xx Multiply Accumulator. */
++#define PPC_FEATURE_UNIFIED_CACHE      0x01000000 /* Unified I/D cache.  */
++#define PPC_FEATURE_HAS_SPE            0x00800000 /* Signal Processing ext.  */
++#define PPC_FEATURE_HAS_EFP_SINGLE     0x00400000 /* SPE Float.  */
++#define PPC_FEATURE_HAS_EFP_DOUBLE     0x00200000 /* SPE Double.  */
++#define PPC_FEATURE_NO_TB              0x00100000 /* 601/403gx have no timebase */
++#define PPC_FEATURE_POWER4             0x00080000 /* POWER4 ISA 2.00 */
++#define PPC_FEATURE_POWER5             0x00040000 /* POWER5 ISA 2.02 */
++#define PPC_FEATURE_POWER5_PLUS        0x00020000 /* POWER5+ ISA 2.03 */
++#define PPC_FEATURE_CELL_BE            0x00010000 /* CELL Broadband Engine */
++#define PPC_FEATURE_BOOKE              0x00008000 /* ISA Category Embedded */
++#define PPC_FEATURE_SMT                0x00004000 /* Simultaneous
++                                                     Multi-Threading */
++#define PPC_FEATURE_ICACHE_SNOOP       0x00002000
++#define PPC_FEATURE_ARCH_2_05          0x00001000 /* ISA 2.05 */
++#define PPC_FEATURE_PA6T               0x00000800 /* PA Semi 6T Core */
++#define PPC_FEATURE_HAS_DFP            0x00000400 /* Decimal FP Unit */
++#define PPC_FEATURE_POWER6_EXT         0x00000200 /* P6 + mffgpr/mftgpr */
++#define PPC_FEATURE_ARCH_2_06          0x00000100 /* ISA 2.06 */
++#define PPC_FEATURE_HAS_VSX            0x00000080 /* P7 Vector Extension. */
++#define PPC_FEATURE_PSERIES_PERFMON_COMPAT  \
++                                       0x00000040
++#define PPC_FEATURE_TRUE_LE            0x00000002
++#define PPC_FEATURE_PPC_LE             0x00000001
++/* Feature definitions in AT_HWCAP2.  */
++#define PPC_FEATURE2_ARCH_2_07         0x80000000 /* ISA 2.07 */
++#define PPC_FEATURE2_HAS_HTM           0x40000000 /* Hardware Transactional
++                                                     Memory */
++#define PPC_FEATURE2_HAS_DSCR          0x20000000 /* Data Stream Control
++                                                     Register */
++#define PPC_FEATURE2_HAS_EBB           0x10000000 /* Event Base Branching */
++#define PPC_FEATURE2_HAS_ISEL          0x08000000 /* Integer Select */
++#define PPC_FEATURE2_HAS_TAR           0x04000000 /* Target Address Register */
++
++#endif /* __powerpc__  */
++
++
++#endif /* _AUXV_HWCAP_H  */
++
++
++
++#ifndef __PPC_ARCH_H__
++#define __PPC_ARCH_H__
++#if defined(_AIX)
++#include <sys/utsname.h>
++#include  <arpa/nameser_compat.h> /* Endian.h */
++/* This is faked compatability with Linux,
++   in fact it uses macros in sys/sysconfig.h
++   and the _system_configuration() call in libc
++   This SHOULD be cleaned up at some point as
++   it dups defs in auxv.c, but for now I
++   wanted to minimize changes to the separately
++   licened code auxv code.
++*/
++#include "sys/systemcfg.h"
++#ifndef POWER_6
++#  define POWER_6 0x4000 /* 6 class CPU */
++#endif 
++#ifndef POWER_7
++#  define POWER_7 0x8000 /* 7 class CPU */
++#endif 
++#ifndef POWER_8
++#  define POWER_8 0x10000 /* 8 class CPU */
++#endif
++#ifndef POWER_9
++#  define POWER_9 0x20000 /* 9 class CPU */
++#endif 
++
++
++extern unsigned long query_auxv(unsigned int type);
++
++#endif
++
++#if defined(__linux)
++#include <endian.h>
++#include "auxv.h"
++#endif
++
+ /*
+  * Flags' usage can appear ambiguous, because they are set rather
+  * to reflect OpenSSL performance preferences than actual processor
+@@ -25,4 +121,5 @@ extern unsigned int OPENSSL_ppccap_P;
+ # define PPC_MFTB        (1<<5)
+ # define PPC_MFSPR268    (1<<6)
+ 
++#define PPC_VCIPHER    PPC_CRYPTO207
+ #endif
+diff --git a/crypto/s390xcap.c b/crypto/s390xcap.c
+index 1097c70..65ce3cd 100644
+--- a/crypto/s390xcap.c
++++ b/crypto/s390xcap.c
+@@ -15,6 +15,7 @@
+ #include "internal/cryptlib.h"
+ #include "s390x_arch.h"
+ 
++
+ static sigjmp_buf ill_jmp;
+ static void ill_handler(int sig)
+ {
+@@ -51,9 +52,9 @@ void OPENSSL_cpuid_setup(void)
+     sigaction(SIGFPE, &ill_act, &oact_fpe);
+ 
+     /* protection against missing store-facility-list-extended */
+-    if (sigsetjmp(ill_jmp, 1) == 0)
++    if (sigsetjmp(ill_jmp, 1) == 0) {
+         OPENSSL_s390x_facilities();
+-
++    }
+     /* protection against disabled vector facility */
+     if ((OPENSSL_s390xcap_P.stfle[2] & S390X_CAPBIT(S390X_VX))
+         && (sigsetjmp(ill_jmp, 1) == 0)) {
+@@ -68,3 +69,38 @@ void OPENSSL_cpuid_setup(void)
+     sigaction(SIGILL, &oact_ill, NULL);
+     sigprocmask(SIG_SETMASK, &oset, NULL);
+ }
++
++/* CP-ASSIST capability */
++#define S390_ALLOWED_MASK_BITS 0x0000400000000000
++int OPENSSL_cpuid(long long *id);
++
++int OPENSSL_cpuid_override(long long mask) 
++{
++  union {
++    long long cap;
++    unsigned int icap[2];
++  } u;
++
++  OPENSSL_cpuid(&u.cap);
++  mask |= (~S390_ALLOWED_MASK_BITS);
++  u.cap &= mask;
++  OPENSSL_s390xcap_P[0] = u.icap[0];
++  OPENSSL_s390xcap_P[1] = u.icap[1];
++  return 1;
++}
++int OPENSSL_cpuid(long long *id)
++{
++  union {
++    long long cap;
++    unsigned int icap[2];
++  } u;
++  static int s390_cap_set = 0;
++  if(! s390_cap_set) {
++    s390_cap_set = 1;
++    OPENSSL_cpuid_setup();
++  }
++  u.icap[0] = OPENSSL_s390xcap_P[0];
++  u.icap[1] = OPENSSL_s390xcap_P[1];
++  *id = u.cap;
++  return 1;
++}
+diff --git a/crypto/sparcv9cap.c b/crypto/sparcv9cap.c
+index b3cb3d4..5d7c28a 100644
+--- a/crypto/sparcv9cap.c
++++ b/crypto/sparcv9cap.c
+@@ -14,7 +14,7 @@
+ #include <signal.h>
+ #include <sys/time.h>
+ #include <unistd.h>
+-#include <openssl/bn.h>
++#include "openssl/bn.h"
+ #include "internal/cryptlib.h"
+ #include "bn/bn_local.h"    /* for definition of bn_mul_mont */
+ 
+@@ -294,3 +294,41 @@ void OPENSSL_cpuid_setup(void)
+     }
+ # endif
+ }
++int OPENSSL_cpuid(unsigned long long *id);
++void OPENSSL_cpuid_setup(void);
++
++/* No user clearable bits anyway , but keep the API the same */
++
++#define SPARCV9_ALLOWED_MASK_BITS  (CFR_AES | CFR_SHA1 | CFR_SHA256 | CFR_SHA512 | CFR_MPMUL | CFR_MONTMUL | CFR_MONTSQR)
++int OPENSSL_cpuid_override(unsigned long long mask) 
++{
++  union {
++    unsigned long long cap;
++    unsigned int ucap[2];
++  } u,t;
++
++
++  OPENSSL_cpuid(&u.cap);
++  
++  t.cap = mask;
++  u.ucap[1] =  OPENSSL_sparcv9cap_P[1];
++  t.ucap[1] |= (~SPARCV9_ALLOWED_MASK_BITS);
++  u.ucap[1] &= t.ucap[0]; /* Endianess */
++  OPENSSL_sparcv9cap_P[1] = u.ucap[1];
++  
++  return 1;
++}
++
++int OPENSSL_cpuid(unsigned long long *id)
++{
++  union {
++    unsigned long long cap;
++    unsigned int ucap[2];
++  } u;
++  OPENSSL_cpuid_setup();
++  u.ucap[1] = OPENSSL_sparcv9cap_P[0];
++  u.ucap[0] = OPENSSL_sparcv9cap_P[1];
++  *id = u.cap;
++  return 1;
++}
++

@@ -1,0 +1,69 @@
+diff --git a/crypto/bn/bn_x931p.c b/crypto/bn/bn_x931p.c
+index 5a78554..0e2d486 100644
+--- a/crypto/bn/bn_x931p.c
++++ b/crypto/bn/bn_x931p.c
+@@ -76,10 +76,10 @@ int BN_X931_derive_prime_ex(BIGNUM *p, BIGNUM *p1, BIGNUM *p2,
+ 
+     if (pm1 == NULL)
+         goto err;
+-
++    BN_set_flags(p1, BN_FLG_CONSTTIME);
+     if (!bn_x931_derive_pi(p1, Xp1, ctx, cb))
+         goto err;
+-
++    BN_set_flags(p2, BN_FLG_CONSTTIME);         
+     if (!bn_x931_derive_pi(p2, Xp2, ctx, cb))
+         goto err;
+ 
+@@ -241,11 +241,13 @@ int BN_X931_generate_prime_ex(BIGNUM *p, BIGNUM *p1, BIGNUM *p2,
+         goto error;
+     if (!BN_priv_rand(Xp2, rbits, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ODD))
+         goto error;
++    BN_set_flags(Xp1,BN_FLG_CONSTTIME);
++    BN_set_flags(Xp2,BN_FLG_CONSTTIME);    
+     if (!BN_X931_derive_prime_ex(p, p1, p2, Xp, Xp1, Xp2, e, ctx, cb))
+         goto error;
+ 
+     ret = 1;
+-
++    
+  error:
+     BN_CTX_end(ctx);
+ 
+diff --git a/crypto/rsa/rsa_x931g.c b/crypto/rsa/rsa_x931g.c
+index 322cd14..7742d36 100644
+--- a/crypto/rsa/rsa_x931g.c
++++ b/crypto/rsa/rsa_x931g.c
+@@ -57,7 +57,7 @@ int RSA_X931_derive_ex(RSA *rsa, BIGNUM *p1, BIGNUM *p2, BIGNUM *q1,
+         rsa->p = BN_new();
+         if (rsa->p == NULL)
+             goto err;
+-
++        BN_set_flags(rsa->p, BN_FLG_CONSTTIME);    
+         if (!BN_X931_derive_prime_ex(rsa->p, p1, p2,
+                                      Xp, Xp1, Xp2, e, ctx, cb))
+             goto err;
+@@ -67,6 +67,7 @@ int RSA_X931_derive_ex(RSA *rsa, BIGNUM *p1, BIGNUM *p2, BIGNUM *q1,
+         rsa->q = BN_new();
+         if (rsa->q == NULL)
+             goto err;
++        BN_set_flags(rsa->q, BN_FLG_CONSTTIME);            
+         if (!BN_X931_derive_prime_ex(rsa->q, q1, q2,
+                                      Xq, Xq1, Xq2, e, ctx, cb))
+             goto err;
+@@ -114,6 +115,7 @@ int RSA_X931_derive_ex(RSA *rsa, BIGNUM *p1, BIGNUM *p2, BIGNUM *q1,
+ 
+     /* calculate d mod (p-1) */
+     rsa->dmp1 = BN_new();
++    BN_set_flags(rsa->dmp1, BN_FLG_CONSTTIME); /* Avoid leaking bits */   
+     if (rsa->dmp1 == NULL)
+         goto err;
+     if (!BN_mod(rsa->dmp1, rsa->d, r1, ctx))
+@@ -121,6 +123,7 @@ int RSA_X931_derive_ex(RSA *rsa, BIGNUM *p1, BIGNUM *p2, BIGNUM *q1,
+ 
+     /* calculate d mod (q-1) */
+     rsa->dmq1 = BN_new();
++    BN_set_flags(rsa->dmq1, BN_FLG_CONSTTIME); /* Avoid leaking bits */        
+     if (rsa->dmq1 == NULL)
+         goto err;
+     if (!BN_mod(rsa->dmq1, rsa->d, r2, ctx))

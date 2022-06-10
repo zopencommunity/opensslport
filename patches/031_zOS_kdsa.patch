@@ -1,0 +1,47 @@
+diff --git a/crypto/s390xcpuid.pl b/crypto/s390xcpuid.pl
+index bc53cdd..f1ef446 100755
+--- a/crypto/s390xcpuid.pl
++++ b/crypto/s390xcpuid.pl
+@@ -832,25 +832,26 @@ FUNCTION_END("s390x_pcc",$rv);
+ #
+ # int s390x_kdsa(unsigned int fc, void *param, const unsigned char *in, size_t len);
+ # 
+-FUNCTION_BEGIN("s390x_kdsa",4);
+-
+-	lr	    ($alwaysr0,"$fc");
+-    &{$z?   \&lgr:\&lr}	($alwaysr1,$param); # implicitly used by the kdsa instruction
+-	lhi	    ($rv,0);      		# use xgr($rv,$rv) instead, is faster
+-if ($flavour =~ /linux/) {	
+-	LONG	(0xb93a0004);		# kdsa    ($wr0,$in);
++FUNCTION_BEGIN("s390x_kdsa",4);        
++        lr          ($alwaysr0,"$fc");
++        &{$z? \&lgr:\&lr} ($alwaysr1,$param); # implicitly used by the kdsa instruction
++if ($flavour =~ /linux/) {      
++        xgr     ($rv,$rv);              # set rv to 0
++        LONG    (0xb93a0004);           # kdsa    ($wr0,$in);
+ } else {
+-    &{$z? \&lgr:\&lr}	("R2","R3");		# Move $inp into even-odd reg pair
+-	&{$z? \&lg:\&l} ($wr6,"$DSA_OFF($sp)");      # Get DSA address
+-	&{$z? \&lg:\&l}	($wr3,"$PARMS_OFF+$SIZE_T*3($wr6)"); # Get len
+-	LONG	(0xb93a0002);		# kdsa    ($wr0,$in);
+-}	
+-	brc	    (1,"$ip-4");		# pay attention to "partial completion"
+-	brc	    (7,LABEL("Lkdsa_err"));	# if CC==0 return 0, else return 1
+-    j       (LABEL("EXIT_s390x_kdsa"));
++        &{$z? \&lgr:\&lr} ("R6","R3");          # Move $inp into even-odd reg pair
++        xgr     ($rv,$rv);                      # set rv to 0
++        &{$z? \&lg:\&l} ("R14","$DSA_OFF($sp)");      # Get DSA address
++        &{$z? \&lg:\&l} ("R7","$PARMS_OFF+$SIZE_T*3(R14)"); # Get len
++        LONG    (0xb93a0006);           # kdsa    ($wr0,$in);
++}
++        brc         (1,"$ip-4");                # pay attention to "partial completion"
++        brc         (7,LABEL("Lkdsa_err"));     # if CC==0 return 0, else return 1
++        j       (LABEL("EXIT_s390x_kdsa"));
+ LABEL("Lkdsa_err:");
+-	lhi	    ($rv,1);      # Increment instead ?
++        lhi         ($rv,1);
+ FUNCTION_END("s390x_kdsa",$rv);
++
+ }
+ ################
+ # void s390x_trng(unsigned long long *	x,int i);

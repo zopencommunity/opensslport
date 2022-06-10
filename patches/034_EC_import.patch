@@ -1,0 +1,16 @@
+diff --git a/crypto/asn1/d2i_pr.c b/crypto/asn1/d2i_pr.c
+index 2094963..274fc0a 100644
+--- a/crypto/asn1/d2i_pr.c
++++ b/crypto/asn1/d2i_pr.c
+@@ -56,8 +56,11 @@ EVP_PKEY *d2i_PrivateKey(int type, EVP_PKEY **a, const unsigned char **pp,
+                 goto err;
+             EVP_PKEY_free(ret);
+             ret = tmp;
++/* PTW. Um, no. Breaks 448/25519 key import.
++   May be a bug with 448/25519 but this is findable
+             if (EVP_PKEY_type(type) != EVP_PKEY_base_id(ret))
+                 goto err;
++*/                
+         } else {
+             ASN1err(ASN1_F_D2I_PRIVATEKEY, ERR_R_ASN1_LIB);
+             goto err;

@@ -1,0 +1,12 @@
+diff --git a/crypto/conf/conf_mall.c b/crypto/conf/conf_mall.c
+index d7eaa85..61a21ee 100644
+--- a/crypto/conf/conf_mall.c
++++ b/crypto/conf/conf_mall.c
+@@ -27,5 +27,7 @@ void OPENSSL_load_builtin_modules(void)
+     ENGINE_add_conf_module();
+ #endif
+     EVP_add_alg_module();
++#if 0
+     conf_add_ssl_module();
++#endif
+ }

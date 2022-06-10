@@ -10,7 +10,7 @@ fi
 export PORT_ROOT="${PWD}"
 export PORT_TYPE="TARBALL"
 
-export PORT_TARBALL_URL="https://www.openssl.org/source/openssl-3.0.3.tar.gz"
+export PORT_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1o.tar.gz"
 export PORT_TARBALL_DEPS="curl gzip make m4 perl"
 
 export PORT_GIT_URL="https://github.com/openssl/openssl"

@@ -1,0 +1,53 @@
+diff --git a/crypto/cversion.c b/crypto/cversion.c
+index 534e7eb..b244c9f 100644
+--- a/crypto/cversion.c
++++ b/crypto/cversion.c
+@@ -13,32 +13,11 @@
+ 
+ unsigned long OpenSSL_version_num(void)
+ {
+-    return OPENSSL_VERSION_NUMBER;
++  /* return OPENSSL_VERSION_NUMBER; */
++  return 0;
+ }
+ 
+ const char *OpenSSL_version(int t)
+ {
+-    switch (t) {
+-    case OPENSSL_VERSION:
+-        return OPENSSL_VERSION_TEXT;
+-    case OPENSSL_BUILT_ON:
+-        return DATE;
+-    case OPENSSL_CFLAGS:
+-        return compiler_flags;
+-    case OPENSSL_PLATFORM:
+-        return PLATFORM;
+-    case OPENSSL_DIR:
+-#ifdef OPENSSLDIR
+-        return "OPENSSLDIR: \"" OPENSSLDIR "\"";
+-#else
+-        return "OPENSSLDIR: N/A";
+-#endif
+-    case OPENSSL_ENGINES_DIR:
+-#ifdef ENGINESDIR
+-        return "ENGINESDIR: \"" ENGINESDIR "\"";
+-#else
+-        return "ENGINESDIR: N/A";
+-#endif
+-    }
+     return "not available";
+ }
+diff --git a/include/openssl/opensslv.h b/include/openssl/opensslv.h
+index bd9dc92..f6b3e53 100644
+--- a/include/openssl/opensslv.h
++++ b/include/openssl/opensslv.h
+@@ -40,7 +40,9 @@ extern "C" {
+  *  major minor fix final patch/beta)
+  */
+ # define OPENSSL_VERSION_NUMBER  0x101010ffL
++#if !defined(OPENSSL_VERSION_TEXT)
+ # define OPENSSL_VERSION_TEXT    "OpenSSL 1.1.1o  3 May 2022"
++#endif
+ 
+ /*-
+  * The macros below are to be used for shared library (.so, .dll, ...)

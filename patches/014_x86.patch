@@ -1,0 +1,91 @@
+diff --git a/apps/apps.c b/apps/apps.c
+index db5b48e..e55e60d 100644
+--- a/apps/apps.c
++++ b/apps/apps.c
+@@ -2509,14 +2509,14 @@ BIO *dup_bio_out(int format)
+     if (istext(format))
+         b = BIO_push(BIO_new(BIO_f_linebuffer()), b);
+ #endif
+-
++#if 0 /* PTW, IBM. We don't use BIO so this isn't needed */
+     if (istext(format) && (prefix = getenv("HARNESS_OSSL_PREFIX")) != NULL) {
+         if (prefix_method == NULL)
+             prefix_method = apps_bf_prefix();
+         b = BIO_push(BIO_new(prefix_method), b);
+         BIO_ctrl(b, PREFIX_CTRL_SET_PREFIX, 0, prefix);
+     }
+-
++#endif
+     return b;
+ }
+ 
+diff --git a/crypto/cryptlib.c b/crypto/cryptlib.c
+index 906b284..02f98e9 100644
+--- a/crypto/cryptlib.c
++++ b/crypto/cryptlib.c
+@@ -511,8 +511,15 @@ int OPENSSL_cpuid_override(long long mask)
+ */
+ int OPENSSL_cpuid(long long *id)
+ {
++  union {      
++   long long cap;
++   unsigned int icap[2];
++   } u;
++
+   OPENSSL_cpuid_setup(); 
+-  *id = (long long)OPENSSL_ia32_cpuid(OPENSSL_ia32cap_P);
++  u.icap[0] = OPENSSL_ia32cap_P[0];
++  u.icap[1] = OPENSSL_ia32cap_P[1];
++  *id = u.cap;
+   return 1;
+ }
+ 
+diff --git a/crypto/x86_64cpuid.pl b/crypto/x86_64cpuid.pl
+index d9536d6..eb7f1b1 100644
+--- a/crypto/x86_64cpuid.pl
++++ b/crypto/x86_64cpuid.pl
+@@ -460,6 +460,21 @@ ___
+ sub gen_random {
+ my $rdop = shift;
+ print<<___;
++.globl  OPENSSL_ia32_${rdop}
++.type   OPENSSL_ia32_${rdop},\@abi-omnipotent
++.align  16
++OPENSSL_ia32_${rdop}:
++        mov     \$8,%ecx
++.Loop_${rdop}:
++        ${rdop} %rax
++        jc      .Lbreak_${rdop}
++        loop    .Loop_${rdop}
++.Lbreak_${rdop}:
++        cmp     \$0,%rax
++        cmove   %rcx,%rax
++        ret
++.size   OPENSSL_ia32_${rdop},.-OPENSSL_ia32_${rdop}
++
+ .globl	OPENSSL_ia32_${rdop}_bytes
+ .type	OPENSSL_ia32_${rdop}_bytes,\@abi-omnipotent
+ .align	16
+diff --git a/crypto/x86cpuid.pl b/crypto/x86cpuid.pl
+index ba4fd80..1f8ca33 100644
+--- a/crypto/x86cpuid.pl
++++ b/crypto/x86cpuid.pl
+@@ -453,6 +453,18 @@ my $max = "ebp";
+ 
+ sub gen_random {
+ my $rdop = shift;
++&function_begin_B("OPENSSL_ia32_${rdop}");
++        &mov    ("ecx",8);
++&set_label("loop");
++        &${rdop}("eax");
++        &jc     (&label("break"));
++        &loop   (&label("loop"));
++&set_label("break");
++        &cmp    ("eax",0);
++        &cmove  ("eax","ecx");
++        &ret    ();
++&function_end_B("OPENSSL_ia32_${rdop}");
++
+ &function_begin_B("OPENSSL_ia32_${rdop}_bytes");
+ 	&push	("edi");
+ 	&push	("ebx");

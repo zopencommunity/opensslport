@@ -1,0 +1,299 @@
+diff --git a/crypto/asn1/asn_mime.c b/crypto/asn1/asn_mime.c
+index 38735cd..c998329 100644
+--- a/crypto/asn1/asn_mime.c
++++ b/crypto/asn1/asn_mime.c
+@@ -247,7 +247,7 @@ int SMIME_write_ASN1(BIO *bio, ASN1_VALUE *val, BIO *data, int flags,
+     if ((flags & SMIME_DETACHED) && data) {
+         /* We want multipart/signed */
+         /* Generate a random boundary */
+-        if (RAND_bytes((unsigned char *)bound, 32) <= 0)
++        if (RAND_pseudo_bytes((unsigned char *)bound, 32) <= 0)
+             return 0;
+         for (i = 0; i < 32; i++) {
+             c = bound[i] & 0xf;
+diff --git a/crypto/asn1/p5_pbe.c b/crypto/asn1/p5_pbe.c
+index ab7e168..f4c68ac 100644
+--- a/crypto/asn1/p5_pbe.c
++++ b/crypto/asn1/p5_pbe.c
+@@ -52,7 +52,7 @@ int PKCS5_pbe_set0_algor(X509_ALGOR *algor, int alg, int iter,
+     }
+     if (salt)
+         memcpy(sstr, salt, saltlen);
+-    else if (RAND_bytes(sstr, saltlen) <= 0)
++    else if (RAND_pseudo_bytes(sstr, saltlen) <= 0)
+         goto err;
+ 
+     ASN1_STRING_set0(pbe->salt, sstr, saltlen);
+diff --git a/crypto/asn1/p5_pbev2.c b/crypto/asn1/p5_pbev2.c
+index f91ba08..42055a6 100644
+--- a/crypto/asn1/p5_pbev2.c
++++ b/crypto/asn1/p5_pbev2.c
+@@ -67,7 +67,7 @@ X509_ALGOR *PKCS5_pbe2_set_iv(const EVP_CIPHER *cipher, int iter,
+     if (EVP_CIPHER_iv_length(cipher)) {
+         if (aiv)
+             memcpy(iv, aiv, EVP_CIPHER_iv_length(cipher));
+-        else if (RAND_bytes(iv, EVP_CIPHER_iv_length(cipher)) <= 0)
++        else if (RAND_pseudo_bytes(iv, EVP_CIPHER_iv_length(cipher)) <= 0)
+             goto err;
+     }
+ 
+@@ -170,7 +170,7 @@ X509_ALGOR *PKCS5_pbkdf2_set(int iter, unsigned char *salt, int saltlen,
+ 
+     if (salt)
+         memcpy(osalt->data, salt, saltlen);
+-    else if (RAND_bytes(osalt->data, saltlen) <= 0)
++    else if (RAND_pseudo_bytes(osalt->data, saltlen) <= 0)
+         goto merr;
+ 
+     if (iter <= 0)
+diff --git a/crypto/asn1/p5_scrypt.c b/crypto/asn1/p5_scrypt.c
+index 1491d96..4831ef3 100644
+--- a/crypto/asn1/p5_scrypt.c
++++ b/crypto/asn1/p5_scrypt.c
+@@ -82,7 +82,7 @@ X509_ALGOR *PKCS5_pbe2_set_scrypt(const EVP_CIPHER *cipher,
+     if (EVP_CIPHER_iv_length(cipher)) {
+         if (aiv)
+             memcpy(iv, aiv, EVP_CIPHER_iv_length(cipher));
+-        else if (RAND_bytes(iv, EVP_CIPHER_iv_length(cipher)) <= 0)
++        else if (RAND_pseudo_bytes(iv, EVP_CIPHER_iv_length(cipher)) <= 0)
+             goto err;
+     }
+ 
+@@ -162,7 +162,7 @@ static X509_ALGOR *pkcs5_scrypt_set(const unsigned char *salt, size_t saltlen,
+     if (ASN1_STRING_set(sparam->salt, salt, saltlen) == 0)
+         goto merr;
+ 
+-    if (salt == NULL && RAND_bytes(sparam->salt->data, saltlen) <= 0)
++    if (salt == NULL && RAND_pseudo_bytes(sparam->salt->data, saltlen) <= 0)
+         goto err;
+ 
+     if (ASN1_INTEGER_set_uint64(sparam->costParameter, N) == 0)
+diff --git a/crypto/evp/bio_ok.c b/crypto/evp/bio_ok.c
+index 9610f3c..0e00295 100644
+--- a/crypto/evp/bio_ok.c
++++ b/crypto/evp/bio_ok.c
+@@ -466,7 +466,7 @@ static int sig_out(BIO *b)
+      * FIXME: there's absolutely no guarantee this makes any sense at all,
+      * particularly now EVP_MD_CTX has been restructured.
+      */
+-    if (RAND_bytes(md_data, md_size) <= 0)
++    if (RAND_pseudo_bytes(md_data, md_size) <= 0)
+         goto berr;
+     memcpy(&(ctx->buf[ctx->buf_len]), md_data, md_size);
+     longswap(&(ctx->buf[ctx->buf_len]), md_size);
+diff --git a/crypto/evp/e_aes.c b/crypto/evp/e_aes.c
+index 99116ad..aadb445 100644
+--- a/crypto/evp/e_aes.c
++++ b/crypto/evp/e_aes.c
+@@ -2904,7 +2904,7 @@ static int aes_gcm_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
+             return 0;
+         if (arg)
+             memcpy(gctx->iv, ptr, arg);
+-        if (c->encrypt && RAND_bytes(gctx->iv + arg, gctx->ivlen - arg) <= 0)
++        if (c->encrypt && RAND_pseudo_bytes(gctx->iv + arg, gctx->ivlen - arg) <= 0)
+             return 0;
+         gctx->iv_gen = 1;
+         return 1;
+diff --git a/crypto/evp/e_aes_cbc_hmac_sha1.c b/crypto/evp/e_aes_cbc_hmac_sha1.c
+index 27c36b4..71c2327 100644
+--- a/crypto/evp/e_aes_cbc_hmac_sha1.c
++++ b/crypto/evp/e_aes_cbc_hmac_sha1.c
+@@ -174,7 +174,7 @@ static size_t tls1_1_multi_block_encrypt(EVP_AES_HMAC_SHA1 *key,
+ #  endif
+ 
+     /* ask for IVs in bulk */
+-    if (RAND_bytes((IVs = blocks[0].c), 16 * x4) <= 0)
++    if (RAND_pseudo_bytes((IVs = blocks[0].c), 16 * x4) <= 0)
+         return 0;
+ 
+     ctx = (SHA1_MB_CTX *) (storage + 32 - ((size_t)storage % 32)); /* align */
+diff --git a/crypto/evp/e_aes_cbc_hmac_sha256.c b/crypto/evp/e_aes_cbc_hmac_sha256.c
+index cc622b6..106fa04 100644
+--- a/crypto/evp/e_aes_cbc_hmac_sha256.c
++++ b/crypto/evp/e_aes_cbc_hmac_sha256.c
+@@ -170,7 +170,7 @@ static size_t tls1_1_multi_block_encrypt(EVP_AES_HMAC_SHA256 *key,
+ #  endif
+ 
+     /* ask for IVs in bulk */
+-    if (RAND_bytes((IVs = blocks[0].c), 16 * x4) <= 0)
++    if (RAND_pseudo_bytes((IVs = blocks[0].c), 16 * x4) <= 0)
+         return 0;
+ 
+     /* align */
+diff --git a/crypto/evp/e_aria.c b/crypto/evp/e_aria.c
+index 1cc6dd9..c104fa4 100644
+--- a/crypto/evp/e_aria.c
++++ b/crypto/evp/e_aria.c
+@@ -308,7 +308,7 @@ static int aria_gcm_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
+         if (arg)
+             memcpy(gctx->iv, ptr, arg);
+         if (EVP_CIPHER_CTX_encrypting(c)
+-            && RAND_bytes(gctx->iv + arg, gctx->ivlen - arg) <= 0)
++            && RAND_pseudo_bytes(gctx->iv + arg, gctx->ivlen - arg) <= 0)
+             return 0;
+         gctx->iv_gen = 1;
+         return 1;
+diff --git a/crypto/evp/e_des3.c b/crypto/evp/e_des3.c
+index 2b20525..c35068c 100644
+--- a/crypto/evp/e_des3.c
++++ b/crypto/evp/e_des3.c
+@@ -390,7 +390,7 @@ static int des_ede3_wrap(EVP_CIPHER_CTX *ctx, unsigned char *out,
+     memcpy(out + inl + 8, sha1tmp, 8);
+     OPENSSL_cleanse(sha1tmp, SHA_DIGEST_LENGTH);
+     /* Generate random IV */
+-    if (RAND_bytes(EVP_CIPHER_CTX_iv_noconst(ctx), 8) <= 0)
++    if (RAND_pseudo_bytes(EVP_CIPHER_CTX_iv_noconst(ctx), 8) <= 0)
+         return -1;
+     memcpy(out, EVP_CIPHER_CTX_iv_noconst(ctx), 8);
+     /* Encrypt everything after IV in place */
+diff --git a/crypto/evp/p_seal.c b/crypto/evp/p_seal.c
+index e851d7a..bbbdc9e 100644
+--- a/crypto/evp/p_seal.c
++++ b/crypto/evp/p_seal.c
+@@ -34,7 +34,7 @@ int EVP_SealInit(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type,
+         return 0;
+ 
+     if (EVP_CIPHER_CTX_iv_length(ctx)
+-            && RAND_bytes(iv, EVP_CIPHER_CTX_iv_length(ctx)) <= 0)
++            && RAND_pseudo_bytes(iv, EVP_CIPHER_CTX_iv_length(ctx)) <= 0)
+         goto err;
+ 
+     if (!EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv))
+diff --git a/crypto/pem/pem_lib.c b/crypto/pem/pem_lib.c
+index 2de0935..8a0a45c 100644
+--- a/crypto/pem/pem_lib.c
++++ b/crypto/pem/pem_lib.c
+@@ -363,7 +363,7 @@ int PEM_ASN1_write_bio(i2d_of_void *i2d, const char *name, BIO *bp,
+ #endif
+             kstr = (unsigned char *)buf;
+         }
+-        if (RAND_bytes(iv, EVP_CIPHER_iv_length(enc)) <= 0) /* Generate a salt */
++        if (RAND_pseudo_bytes(iv, EVP_CIPHER_iv_length(enc)) <= 0) /* Generate a salt */
+             goto err;
+         /*
+          * The 'iv' is used as the iv and as a salt.  It is NOT taken from
+diff --git a/crypto/pem/pvkfmt.c b/crypto/pem/pvkfmt.c
+index a933b7c..2576368 100644
+--- a/crypto/pem/pvkfmt.c
++++ b/crypto/pem/pvkfmt.c
+@@ -817,7 +817,7 @@ static int i2b_PVK(unsigned char **out, EVP_PKEY *pk, int enclevel,
+     write_ledword(&p, enclevel ? PVK_SALTLEN : 0);
+     write_ledword(&p, pklen);
+     if (enclevel) {
+-        if (RAND_bytes(p, PVK_SALTLEN) <= 0)
++        if (RAND_pseudo_bytes(p, PVK_SALTLEN) <= 0)
+             goto error;
+         salt = p;
+         p += PVK_SALTLEN;
+diff --git a/crypto/pkcs12/p12_mutl.c b/crypto/pkcs12/p12_mutl.c
+index 3658003..7163f42 100644
+--- a/crypto/pkcs12/p12_mutl.c
++++ b/crypto/pkcs12/p12_mutl.c
+@@ -231,7 +231,7 @@ int PKCS12_setup_mac(PKCS12 *p12, int iter, unsigned char *salt, int saltlen,
+     }
+     p12->mac->salt->length = saltlen;
+     if (!salt) {
+-        if (RAND_bytes(p12->mac->salt->data, saltlen) <= 0)
++        if (RAND_pseudo_bytes(p12->mac->salt->data, saltlen) <= 0)
+             return 0;
+     } else
+         memcpy(p12->mac->salt->data, salt, saltlen);
+diff --git a/crypto/pkcs7/pk7_doit.c b/crypto/pkcs7/pk7_doit.c
+index f63fbc5..86b0a82 100644
+--- a/crypto/pkcs7/pk7_doit.c
++++ b/crypto/pkcs7/pk7_doit.c
+@@ -284,7 +284,7 @@ BIO *PKCS7_dataInit(PKCS7 *p7, BIO *bio)
+         ivlen = EVP_CIPHER_iv_length(evp_cipher);
+         xalg->algorithm = OBJ_nid2obj(EVP_CIPHER_type(evp_cipher));
+         if (ivlen > 0)
+-            if (RAND_bytes(iv, ivlen) <= 0)
++            if (RAND_pseudo_bytes(iv, ivlen) <= 0)
+                 goto err;
+         if (EVP_CipherInit_ex(ctx, evp_cipher, NULL, NULL, NULL, 1) <= 0)
+             goto err;
+diff --git a/crypto/rsa/rsa_oaep.c b/crypto/rsa/rsa_oaep.c
+index 302360a..faf1f21 100644
+--- a/crypto/rsa/rsa_oaep.c
++++ b/crypto/rsa/rsa_oaep.c
+@@ -78,7 +78,7 @@ int RSA_padding_add_PKCS1_OAEP_mgf1(unsigned char *to, int tlen,
+     memset(db + mdlen, 0, emlen - flen - 2 * mdlen - 1);
+     db[emlen - flen - mdlen - 1] = 0x01;
+     memcpy(db + emlen - flen - mdlen, from, (unsigned int)flen);
+-    if (RAND_bytes(seed, mdlen) <= 0)
++    if (RAND_pseudo_bytes(seed, mdlen) <= 0)
+         goto err;
+ 
+     dbmask_len = emlen - mdlen;
+diff --git a/crypto/rsa/rsa_pk1.c b/crypto/rsa/rsa_pk1.c
+index a3d0b7c..f7ffb5b 100644
+--- a/crypto/rsa/rsa_pk1.c
++++ b/crypto/rsa/rsa_pk1.c
+@@ -134,12 +134,12 @@ int RSA_padding_add_PKCS1_type_2(unsigned char *to, int tlen,
+     /* pad out with non-zero random data */
+     j = tlen - 3 - flen;
+ 
+-    if (RAND_bytes(p, j) <= 0)
++    if (RAND_pseudo_bytes(p, j) <= 0)
+         return 0;
+     for (i = 0; i < j; i++) {
+         if (*p == '\0')
+             do {
+-                if (RAND_bytes(p, 1) <= 0)
++                if (RAND_pseudo_bytes(p, 1) <= 0)
+                     return 0;
+             } while (*p == '\0');
+         p++;
+diff --git a/crypto/rsa/rsa_pss.c b/crypto/rsa/rsa_pss.c
+index 40ce1c4..1ff2bab 100644
+--- a/crypto/rsa/rsa_pss.c
++++ b/crypto/rsa/rsa_pss.c
+@@ -200,7 +200,7 @@ int RSA_padding_add_PKCS1_PSS_mgf1(RSA *rsa, unsigned char *EM,
+                    ERR_R_MALLOC_FAILURE);
+             goto err;
+         }
+-        if (RAND_bytes(salt, sLen) <= 0)
++        if (RAND_pseudo_bytes(salt, sLen) <= 0)
+             goto err;
+     }
+     maskedDBLen = emLen - hLen - 1;
+diff --git a/crypto/rsa/rsa_ssl.c b/crypto/rsa/rsa_ssl.c
+index e1c755a..d894421 100644
+--- a/crypto/rsa/rsa_ssl.c
++++ b/crypto/rsa/rsa_ssl.c
+@@ -34,12 +34,12 @@ int RSA_padding_add_SSLv23(unsigned char *to, int tlen,
+     /* pad out with non-zero random data */
+     j = tlen - 3 - 8 - flen;
+ 
+-    if (RAND_bytes(p, j) <= 0)
++    if (RAND_pseudo_bytes(p, j) <= 0)
+         return 0;
+     for (i = 0; i < j; i++) {
+         if (*p == '\0')
+             do {
+-                if (RAND_bytes(p, 1) <= 0)
++                if (RAND_pseudo_bytes(p, 1) <= 0)
+                     return 0;
+             } while (*p == '\0');
+         p++;
+diff --git a/crypto/srp/srp_vfy.c b/crypto/srp/srp_vfy.c
+index 394e118..2d337dc 100644
+--- a/crypto/srp/srp_vfy.c
++++ b/crypto/srp/srp_vfy.c
+@@ -618,7 +618,7 @@ char *SRP_create_verifier(const char *user, const char *pass, char **salt,
+     }
+ 
+     if (*salt == NULL) {
+-        if (RAND_bytes(tmp2, SRP_RANDOM_SALT_LEN) <= 0)
++        if (RAND_pseudo_bytes(tmp2, SRP_RANDOM_SALT_LEN) <= 0)
+             goto err;
+ 
+         s = BN_bin2bn(tmp2, SRP_RANDOM_SALT_LEN, NULL);
+@@ -693,7 +693,7 @@ int SRP_create_verifier_BN(const char *user, const char *pass, BIGNUM **salt,
+         goto err;
+ 
+     if (*salt == NULL) {
+-        if (RAND_bytes(tmp2, SRP_RANDOM_SALT_LEN) <= 0)
++        if (RAND_pseudo_bytes(tmp2, SRP_RANDOM_SALT_LEN) <= 0)
+             goto err;
+ 
+         salttmp = BN_bin2bn(tmp2, SRP_RANDOM_SALT_LEN, NULL);

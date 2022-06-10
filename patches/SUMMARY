@@ -1,0 +1,96 @@
+Copied from 1.1.1k sept/2021
+
+000_base.patch    Fixes to CPUID
+                  Avoid dragging in BIO functions
+                  rsa_x931 - allow 512 bit keys, up MR rounds with 
+                  keysize
+
+		  Avoid repeated include of some headers. 
+                  reenable MD2
+
+		  A few changes that were in 000 but broke with changes
+                  to beta 1.1.0, plus ec_lib.c, make sure EC innards
+                  are scrubbed on free
+
+001_keytests.patch FIPS required limits on duplicate keys etc
+
+002_platforms.patch Miscellaneous patches needed to build on IBM's 
+	          (old) build OS's
+
+003_AIX.patch     Fix problems with CPUID on Power
+
+004_hpux.patch    pthread_once() on hpux PA-RISC doesn't. Work around that.
+
+005_misc.patch    Fixes small problems found in test. Test/build failures
+                  caused by compiler quirks on various platforms.
+	          Add a means to allow 2key 3DES so we can pass the FIPS
+		  tests.
+
+006_lock_contention.patch
+	          - reduce the rate at which the shared RSA bliding value is 
+                    rolled over.
+
+007_zOS.patch     zOS support
+
+008_BN_STACK_pop.patch This function will pop an empty stack on error paths
+	          - impacts ICC because we replace the OpenSSL RNG's and
+                  - poison the RNG to the extent that it fails in testing
+
+009_KeyGen.patch  RSA key gen, Xp1,Xp2 should be odd.
+
+010_dh.patch      Add a DH keygen method that uses the subprime q. 
+		  ( for TLS LTS support)
+
+011_version.patch  Disable OpenSSL version info. Request from products as
+		   man + dog runs scanners and picks us up as
+		   "OpenSSL-<something>" and tags us as vulnerable to
+		   defects we don't have. 
+
+012_ppc.patch       Assorted patches for the Power platform
+
+013_RSA_keygen.patch Fix OpenSSL RSA keygen timing leak. [16-April 2018] 
+
+014_x86.patch       ICC_CAP_MASK should return the configured capabilities,
+		     not the machine ones
+		     Add back rdrand/rdseed functions that we use
+
+015_conf.patch       Fix linkage problem.
+
+016_EC_range.patch   Restore point is on curve check for NIST compliance
+
+017_OS.patch         Fix platform specific problems on Sparc, Windows, Arm, s390
+
+018_BN_free.patch    Kill residual information leak. BN_free()->BN_clear_free()
+
+019_no_inline.patch  Suppress inline functions in internal headers needed
+                     for key erasure tests.
+
+020_zseries.patch   Mega zSeries patch. EC asm, zOS, misc bug fixes
+
+021_misc.patch      Misc patches from updating to 1.1.1c
+
+022_RNG_source.patch Pull nonces,padding,IV's etc from PRNG's not the TRNG
+	            Two considerations, perfomance and you really don't want
+                    to leak TRNG state in these routines. (=>Dual EC exploit)
+025_zOS.patch       Patches to enable asm on zOS/zOS31. 
+028_PPC_cap.patch   Fix problems with mis-detection of Power capabilities
+029_obj_data_EDCDIC.patch Faster object lookups on EBCDIC systems
+030_EDXXXX.patch    ED448/25519 Hware accel for z/OS
+031_zOS_kdsa.patch  KDSA fix for zOS
+032_hmac.patch      Avoids malloc's within the HMAC object use cycle
+                    Some OS's have malloc's with a single lock
+034_EC_import.patch OpenSSL breaks import of ED/X 448/25519 private keys
+035_zOS.patch       Fix missing defines in zOS headers
+036_RSA.patch       Inserts the FIPS RSA method into the default RSA logic.
+037_Power10.patch   Power10 detection for AIX
+038_zosa.patch      Z/OS - 64 bit ascii mode.
+039_Z_EC_nonce.patch Switch Z series from using the internal HW EC nonce to SW
+                    (Can't do the NIST KA tests with a HW nonce)
+040_Z_ECX.patch     Disable h/ware accel on Z for *448 *25519 EC
+041_DH.patch        Key checks on keygen for DH and ECDH
+042_osx.patch       Revert OS/X change which only works on current OS/X
+043_ec_fips.patch   Turn off extra key checks after keygen when we aren't a FIPS module
+044_dh_fips.patch   Turn off extra key checks after keygen when we aren't a FIPS module
+046_rsa_d_blinding.patch Support for malformed keys from Java. 
+		    Blinding to cover the case where the imported private key
+                    doesn't have the public key.

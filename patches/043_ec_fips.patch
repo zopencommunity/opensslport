@@ -1,0 +1,300 @@
+diff --git a/crypto/ec/ec_key.c b/crypto/ec/ec_key.c
+index 4cadd6c..dd72153 100644
+--- a/crypto/ec/ec_key.c
++++ b/crypto/ec/ec_key.c
+@@ -191,14 +191,17 @@ int EC_KEY_generate_key(EC_KEY *eckey)
+       ECerr(EC_F_EC_KEY_GENERATE_KEY, EC_R_OPERATION_NOT_SUPPORTED);
+       rv = 0;
+     }
+-    if(1 == rv) {
+-      rv = EC_KEY_check_key(eckey);
+-      if(1 != rv) {
+-        EC_POINT_free(eckey->pub_key);
+-        eckey->pub_key = NULL;
+-        BN_free(eckey->priv_key);
+-        eckey->priv_key = NULL;
+-      }  
++    /* Only do this in FIPS mode, the perf hit is high */
++    if(FIPS_mode()) {
++      if(1 == rv) {
++        rv = EC_KEY_check_key(eckey);
++        if(1 != rv) {
++          EC_POINT_free(eckey->pub_key);
++          eckey->pub_key = NULL;
++          BN_free(eckey->priv_key);
++          eckey->priv_key = NULL;
++        }
++      }     
+     }
+     return rv;
+ }
+@@ -288,8 +291,10 @@ int EC_KEY_check_key(const EC_KEY *eckey)
+  *  - If q = 2m: Verify that xQ and yQ are bit strings of length m bits.
+  * Returns 1 if the public key has a valid range, otherwise it returns 0.
+  * Note: PTW, derived from OpenSSL 3.0.0x code
++ * Note: Made pub_key separately specified so it can check peer keys as well
++ * as be used for consistancy checks on generated keys.
+  */
+-static int ec_key_public_range_check(BN_CTX *ctx, const EC_KEY *key)
++static int ec_key_public_range_check(BN_CTX *ctx, const EC_KEY *key,EC_POINT *pubkey)
+ {
+     int ret = 0;
+     BIGNUM *x, *y;
+@@ -301,7 +306,7 @@ static int ec_key_public_range_check(BN_CTX *ctx, const EC_KEY *key)
+     if (y == NULL)
+         goto err;
+ 
+-    if (!EC_POINT_get_affine_coordinates(key->group, key->pub_key, x, y, ctx))
++    if (!EC_POINT_get_affine_coordinates(key->group, pubkey, x, y, ctx))
+         goto err;
+         
+     if (EC_METHOD_get_field_type(EC_GROUP_method_of(key->group)) == NID_X9_62_prime_field) {
+@@ -338,80 +343,125 @@ static int ossl_ec_key_private_check(const EC_KEY *eckey)
+     }
+     return 1;
+ }
++/*
++ * ECC peer Key validation as specified in SP800-56A R3.
++ * Section 5.6.2.2 
++ * Check that the peer public key is valid before performing
++ * key agreement
++ * eckey is the local key, peer_key is usually the peer public key
++ * 
++ * Note peer key COULD also be the local public key as this 
++ * routine can be called internally to check for a valid public key 
++ * as in ec_simple_key_check() below
++ */
+ 
+-int ec_key_simple_check_key(const EC_KEY *eckey)
++int ec_key_public_key_check(BN_CTX *ctx,const EC_KEY *eckey,EC_POINT *peer_key)
+ {
+     int ok = 0;
+-    BN_CTX *ctx = NULL;
+-    const BIGNUM *order = NULL;
+     EC_POINT *point = NULL;
+-
+-    if (eckey == NULL || eckey->group == NULL || eckey->pub_key == NULL) {
++    const BIGNUM *order = NULL;
++  
++    if (eckey == NULL || eckey->group == NULL || peer_key == NULL) {
+         ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, ERR_R_PASSED_NULL_PARAMETER);
+         return 0;
+     }
+ 
+-    if (EC_POINT_is_at_infinity(eckey->group, eckey->pub_key)) {
++    if (EC_POINT_is_at_infinity(eckey->group, peer_key)) {
+         ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_POINT_AT_INFINITY);
+         goto err;
+     }
+ 
+-    if ((ctx = BN_CTX_new()) == NULL)
+-        goto err;
+-    if ((point = EC_POINT_new(eckey->group)) == NULL)
++    if ((point = EC_POINT_new(eckey->group)) == NULL) {
+         goto err;
+-
++    }
+     /* testing whether the pub_key is on the elliptic curve */
+-    if (EC_POINT_is_on_curve(eckey->group, eckey->pub_key, ctx) <= 0) {
++    if (EC_POINT_is_on_curve(eckey->group, peer_key, ctx) <= 0) {
+         ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_POINT_IS_NOT_ON_CURVE);
+         goto err;
+     }
+-    /* testing whether pub_key * order is the point at infinity */
+-    order = eckey->group->order;
+-    if (BN_is_zero(order)) {
++    /* testing whether pub_key * order is the point at infinity 
++       Note: Only needed if the cofactor isn't 1 as it's covered in the
++       1 case by the previous checks. 
++       And it is 1 for the NIST curves anyway.
++    */
++    if(!BN_is_one(eckey->group->cofactor)) {
++      order = eckey->group->order;
++      if (BN_is_zero(order)) {
+         ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_INVALID_GROUP_ORDER);
+         goto err;
+-    }
+-    if (!EC_POINT_mul(eckey->group, point, NULL, eckey->pub_key, order, ctx)) {
++      }
++      if (!EC_POINT_mul(eckey->group, point, NULL, peer_key, order, ctx)) {
+         ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, ERR_R_EC_LIB);
+         goto err;
+-    }
+-    if (!EC_POINT_is_at_infinity(eckey->group, point)) {
++      }
++      if (!EC_POINT_is_at_infinity(eckey->group, point)) {
+         ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_WRONG_ORDER);
+         goto err;
++      }
+     }
+-    if(1 != ec_key_public_range_check(ctx,eckey)) {
++    if(1 != ec_key_public_range_check(ctx,eckey,peer_key)) {
+         ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, ERR_R_EC_LIB);
+         goto err;
+     }
++    ok = 1;
++err:    
++   if(NULL != point) {
++     EC_POINT_free(point);
++   }
++   return ok;
++}
++int ec_key_simple_check_key(const EC_KEY *eckey)
++{
++    int ok = 0;
++    BN_CTX *ctx = NULL;
++    EC_POINT *point = NULL;
++
++    /* Check the validity of the public key
++       check shared with that used before 
++       use of the key in ECDH compute key
++     */
++    if ((ctx = BN_CTX_new()) == NULL) {
++        goto err;
++    }
++
++    if(1 !=  ec_key_public_key_check(ctx,eckey,eckey->pub_key)) {
++      goto err;
++    }
++
+     /*
+      * in case the priv_key is present : check if generator * priv_key ==
+      * pub_key
+      */
+     if (eckey->priv_key != NULL) {
+-        if (BN_cmp(eckey->priv_key, order) >= 0) {
+-            ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_WRONG_ORDER);
+-            goto err;
+-        }
+-        if (!EC_POINT_mul(eckey->group, point, eckey->priv_key,
++      if ((point = EC_POINT_new(eckey->group)) == NULL) {
++        goto err;
++      }
++      if (BN_cmp(eckey->priv_key, eckey->group->order) >= 0) {
++        ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_WRONG_ORDER);
++        goto err;
++      }
++      if (!EC_POINT_mul(eckey->group, point, eckey->priv_key,
+                           NULL, NULL, ctx)) {
+-            ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, ERR_R_EC_LIB);
+-            goto err;
+-        }
+-        if (EC_POINT_cmp(eckey->group, point, eckey->pub_key, ctx) != 0) {
+-            ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_INVALID_PRIVATE_KEY);
+-            goto err;
+-        }
+-        if(1 != ossl_ec_key_private_check(eckey)) {
+-            ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_INVALID_PRIVATE_KEY);
+-            goto err;
+-        }
+-
++        ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, ERR_R_EC_LIB);
++        goto err;
++      }
++      if (EC_POINT_cmp(eckey->group, point, eckey->pub_key, ctx) != 0) {
++        ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_INVALID_PRIVATE_KEY);
++        goto err;
++      }
++      if(1 != ossl_ec_key_private_check(eckey)) {
++        ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_INVALID_PRIVATE_KEY);
++        goto err;
++      }
+     }
+     ok = 1;
+  err:
+-    BN_CTX_free(ctx);
+-    EC_POINT_free(point);
++   if(NULL != point) {
++     EC_POINT_free(point);
++   }
++   if(NULL != ctx) {
++     BN_CTX_free(ctx);
++   }
+     return ok;
+ }
+ 
+diff --git a/crypto/ec/ec_local.h b/crypto/ec/ec_local.h
+index b1cce65..b34e834 100644
+--- a/crypto/ec/ec_local.h
++++ b/crypto/ec/ec_local.h
+@@ -656,6 +656,8 @@ struct ECDSA_SIG_st {
+     BIGNUM *r;
+     BIGNUM *s;
+ };
++/* Used in fips mode, keygen and to check the peer key before key agreement */
++int ec_key_public_key_check(BN_CTX *ctx,const EC_KEY *eckey,EC_POINT *peer_key);
+ 
+ int ossl_ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in, BIGNUM **kinvp,
+                           BIGNUM **rp);
+diff --git a/crypto/ec/ecdh_ossl.c b/crypto/ec/ecdh_ossl.c
+index 0be00d4..8c9f5ac 100644
+--- a/crypto/ec/ecdh_ossl.c
++++ b/crypto/ec/ecdh_ossl.c
+@@ -26,7 +26,6 @@ int ossl_ecdh_compute_key(unsigned char **psec, size_t *pseclen,
+         ECerr(EC_F_OSSL_ECDH_COMPUTE_KEY, EC_R_CURVE_DOES_NOT_SUPPORT_ECDH);
+         return 0;
+     }
+-
+     return ecdh->group->meth->ecdh_compute_key(psec, pseclen, pub_key, ecdh);
+ }
+ 
+@@ -38,7 +37,7 @@ int ossl_ecdh_compute_key(unsigned char **psec, size_t *pseclen,
+ int ecdh_simple_compute_key(unsigned char **pout, size_t *poutlen,
+                             const EC_POINT *pub_key, const EC_KEY *ecdh)
+ {
+-    BN_CTX *ctx;
++    BN_CTX *ctx = NULL;
+     EC_POINT *tmp = NULL;
+     BIGNUM *x = NULL;
+     const BIGNUM *priv_key;
+@@ -72,12 +71,15 @@ int ecdh_simple_compute_key(unsigned char **pout, size_t *poutlen,
+         }
+         priv_key = x;
+     }
+-
++    /* Check the peer key, should be done FIPS mode or not */
++    if(1 != ec_key_public_key_check(ctx,ecdh,(EC_POINT *)pub_key)) {
++       ECerr(EC_F_ECDH_SIMPLE_COMPUTE_KEY, EC_R_INVALID_PEER_KEY);
++       goto err;
++    }    
+     if ((tmp = EC_POINT_new(group)) == NULL) {
+         ECerr(EC_F_ECDH_SIMPLE_COMPUTE_KEY, ERR_R_MALLOC_FAILURE);
+         goto err;
+     }
+-
+     if (!EC_POINT_mul(group, tmp, NULL, pub_key, priv_key, ctx)) {
+         ECerr(EC_F_ECDH_SIMPLE_COMPUTE_KEY, EC_R_POINT_ARITHMETIC_FAILURE);
+         goto err;
+diff --git a/crypto/o_fips.c b/crypto/o_fips.c
+index 050ea9c..a86a001 100644
+--- a/crypto/o_fips.c
++++ b/crypto/o_fips.c
+@@ -9,16 +9,22 @@
+ 
+ #include "internal/cryptlib.h"
+ 
++static int fips_mode = 0;
++
+ int FIPS_mode(void)
+ {
+-    /* This version of the library does not support FIPS mode. */
+-    return 0;
++    return fips_mode;
+ }
+ 
+ int FIPS_mode_set(int r)
+ {
+-    if (r == 0)
+-        return 1;
+-    CRYPTOerr(CRYPTO_F_FIPS_MODE_SET, CRYPTO_R_FIPS_MODE_NOT_SUPPORTED);
+-    return 0;
++    int rv = 1;
++    if(0 == fips_mode) {
++        if(r) fips_mode = 1;
++    } else {    
++        if(0 == r) {
++            rv = 0;
++        }
++    }
++    return rv;
+ }
