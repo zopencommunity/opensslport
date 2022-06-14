@@ -4323,7 +4323,7 @@ index 4cb8f43..8a1e07a 100644
 -$code =~ s/\`([^\`]*)\`/eval $1/gem;
 -print $code;
 -close STDOUT or die "error closing STDOUT: $!";	# force flush
-+    llgfr   ($len,$len) if ($SIZE_T==4); 
++    llgfr   ($len,$len) if ($SIZE_T==4);
 +
 +&{$z? \&stg:\&st} ($len,"1*$SIZE_T($sp)");  # save copy of $len
 +    srag    ($len,$len,4);                  # formally wrong, because it expands
@@ -4351,11 +4351,11 @@ index 4cb8f43..8a1e07a 100644
 +    slgr    ($outp,$inp);
 +
 +    # generate the tweak value
-+if ($flavour =~ /linux/) {    
++if ($flavour =~ /linux/) {
 +  &{$z? \&lg:\&l} ($s3,"$stdframe($sp)"); # pointer to iv
 +} else {
 +  &{$z? \&lg:\&l} ($s3,"$PARMS_OFF+$SIZE_T*5(r9)"); # Get iv address
-+}  
++}
 +    la      ($s2,"$tweak($sp)");
 +    lmg     ($s0,$s1,"0($s3)");
 +    lghi    ($s3,16);
@@ -4604,7 +4604,7 @@ index 4cb8f43..8a1e07a 100644
 +    slgr    ($outp,$inp);
 +
 +    # generate the tweak value
-+if ($flavour =~ /linux/) {    
++if ($flavour =~ /linux/) {
 +  &{$z? \&lg:\&l} ($s3,"$stdframe($sp)");   # pointer to iv
 +} else {
 +  &{$z? \&lg:\&l} ($s3,"$PARMS_OFF+$SIZE_T*5(r9)"); # Get iv address
@@ -4700,7 +4700,7 @@ index 4cb8f43..8a1e07a 100644
 +    srlg    ($len,$len,4);
 +    slgr    ($outp,$inp);
 +
-+if ($flavour =~ /linux/) {    
++if ($flavour =~ /linux/) {
 +  &{$z? \&lg:\&l} ($s3,"$stdframe($sp)");   # pointer to iv
 +} else {
 +  &{$z? \&lg:\&l} ($s3,"$PARMS_OFF+$SIZE_T*5(r9)"); # Get iv address
@@ -4851,7 +4851,7 @@ index 4cb8f43..8a1e07a 100644
 +LABEL("Lxts_dec_done:");
 +    stg     ($sp,"$tweak+0($sp)");        # wipe tweak
 +    stg     ($sp,"$tweak+8($sp)");        # twesk?
-+&{$z? \&lmg:\&lm} ($key2,$ra,"6*$SIZE_T($sp)") if ($flavour =~ /linux/);  # regs on linux 5->14 
++&{$z? \&lmg:\&lm} ($key2,$ra,"6*$SIZE_T($sp)") if ($flavour =~ /linux/);  # regs on linux 5->14
 +    BR_EXIT();
 +
 +FUNCTION_END("AES_xts_decrypt",$rv);
@@ -4906,9 +4906,9 @@ index a7e4b8a..5c10c6d 100644
 -        $SIZE_T=4;
 -        $g="";
 +   $z=0;	# 31/32 bit ABI
-+	if($flavour =~ /linux/) {
-+		$SIZE_T = 4;
-+	}		
++   if($flavour =~ /linux/) {
++      $SIZE_T = 4;
++   }
 +   $PARMS_OFF=2112
  } else {
 -        $SIZE_T=8;
@@ -5032,7 +5032,7 @@ index a7e4b8a..5c10c6d 100644
 +
 +	$wr0="%r0";
 +	$wr1="%r1";
-+	
++
 +	$ra="%r14";
 +	$sp="%r15";
 +
@@ -5050,10 +5050,10 @@ index a7e4b8a..5c10c6d 100644
 +	$a0="R4";	# passed in reg3
 +	$b1="R5";	# passed in DSA
 +	$b0="R6";	# passed in DSA
-+	
++
 +	$wr0="R0";
 +	$wr1="R1";
-+	
++
 +	$ra="R14";
 +	$sp="R15";
 +
@@ -5223,7 +5223,7 @@ index a7e4b8a..5c10c6d 100644
 +        lg      ($b0,"$PARMS_OFF+$SIZE_T*4(R9)"); # Get b0
 +    }
 +
-+    # Set the sp to the end of the STACK variable to allow it to go backwards. $sp = STACK+sizeof(STACK)-sizeof(savearea) or 
++    # Set the sp to the end of the STACK variable to allow it to go backwards. $sp = STACK+sizeof(STACK)-sizeof(savearea) or
 +    # DC STACK 240F, DC SAVEAREA 16F
 +    la      ($sp,"SAVEAREA");
 +    &{$z? \&stg:\&st}	("R4","0($sp)");				# DSA pointer must be restored before returning - $a0 is R4 also
@@ -5232,8 +5232,8 @@ index a7e4b8a..5c10c6d 100644
 +    lgr     ($rp,"R1");
 +    stmg    ("R3","R6","3*$SIZE_T($sp)"); # Save parms
 +  }
-+  
-+  	lghi	($wr1,-$stdframe-128);
++
++    lghi	($wr1,-$stdframe-128);
 +    la		($wr0,"0($sp)");
 +	la		($sp,"0($wr1,$sp)");			# alloca
 +	&{$z? \&stg : \&st}	($wr0,"0($sp)");			# back chain
@@ -5409,7 +5409,7 @@ index bc8c895..00c51cd 100644
 +	$np="%r5";		# const BN_ULONG *np,
 +	$n0="%r6";		# const BN_ULONG *n0,
  #$num="160(%r15)"	# int num);
-+	
++
 +	$rv="%r2";	$bi="%r2";	# zaps rp
 +	$j="%r7";
 +
@@ -5453,29 +5453,29 @@ index bc8c895..00c51cd 100644
 +	if(($flavour =~ /linux/) && ($z == 0)) {
 +		rllg ($reg,$reg,32);
 +	}
-+}	
++}
 +# int bn_mul_mont(BN_ULONG *rp,const BN_ULONG *ap,const BN_ULONG *bp,const BN_ULONG *np,const BN_ULONG *n0,int num);
 +	TEXT();
 +	FUNCTION_BEGIN("bn_mul_mont",6,"true");
-+	
++
 +# load parameters not passed in registers
 +if ($flavour =~ /linux/) {
 +	lgf		($num,"$stdframe+$SIZE_T-4($sp)");	# pull $num
 +} else {
-+  	la      ($sp,"STACK");		# Setup stack for z/OS
++   la      ($sp,"STACK");		# Setup stack for z/OS
 +
 +	&{$z? \&lg:\&l} ("R9","$DSA_OFF(R4)");     			# Get callers DSA address
-+  	
-+  	&{$z? \&stg:\&st} ("R4","0*$SIZE_T($sp)");			# save DSA on stack
-+  	&{$z? \&lgr:\&lr} ("R8","R3");						# Move bp into R8 and later into $bp which will corrupt the DSA (R4)
-+  	&{$z? \&lgr:\&lr} ($ap,"R2");						# Move ap into $ap
-+  	&{$z? \&lgr:\&lr} ($rp,"R1");						# Move rp into $rp
-+  	
-+  	&{$z? \&lg:\&l} ($np,"$PARMS_OFF+$SIZE_T*3(R9)");	# Get np address
-+  	&{$z? \&lg:\&l} ($n0,"$PARMS_OFF+$SIZE_T*4(R9)");	# Get n0 address
-+  	&{$z? \&lg:\&l} ($num,"$PARMS_OFF+$SIZE_T*5(R9)");	# Get num
-+}	
-+	
++
++	&{$z? \&stg:\&st} ("R4","0*$SIZE_T($sp)");			# save DSA on stack
++	&{$z? \&lgr:\&lr} ("R8","R3");						# Move bp into R8 and later into $bp which will corrupt the DSA (R4)
++	&{$z? \&lgr:\&lr} ($ap,"R2");						# Move ap into $ap
++	&{$z? \&lgr:\&lr} ($rp,"R1");						# Move rp into $rp
++
++	&{$z? \&lg:\&l} ($np,"$PARMS_OFF+$SIZE_T*3(R9)");	# Get np address
++	&{$z? \&lg:\&l} ($n0,"$PARMS_OFF+$SIZE_T*4(R9)");	# Get n0 address
++	&{$z? \&lg:\&l} ($num,"$PARMS_OFF+$SIZE_T*5(R9)");	# Get num
++}
++
 +if ($flavour =~ /linux/) {
 +	sla		($num,eval "log($SIZE_T)/log(2)");	# $num to enumerate bytes   jpf - change this to SIZE_T for 8 byte BN_ULONG
 +	la		($bp,"0($num,$bp)");
@@ -5701,7 +5701,7 @@ index bc8c895..00c51cd 100644
 +	BR_EXIT("h");			# if($num>96) return 0;
 +}
 +
-+	lgr     ($bp,"R8") if ($flavour !~ /linux/);	# This corrupts DSA pointer (R4) 		
++	lgr     ($bp,"R8") if ($flavour !~ /linux/);	# This corrupts DSA pointer (R4)
 +if ($flavour =~ /linux/) {
 +	&{$z? \&stmg:\&stm}	("%r3","%r15","3*$SIZE_T($sp)");
 +} else {
@@ -5731,7 +5731,7 @@ index bc8c895..00c51cd 100644
 +
 +	lgr		($mn0,$alo);	# "tp[0]"*n0
 +	msgr	($mn0,$n0);
-+	
++
 +	lg		($nlo,"0($np)");	#
 +	_dswap	($nlo);
 +	mlgr	($nhi,$mn0);	# np[0]*m1
@@ -5837,7 +5837,7 @@ index bc8c895..00c51cd 100644
 +
 +	la		($j,"0($wr0)");
 +	lr		($count,$num);
-+LABEL("Lsub:");	
++LABEL("Lsub:");
 +	lg		($alo,"0($j,$ap)");
 +	lg		($nlo,"0($j,$np)");
 +	_dswap($nlo);
@@ -5852,7 +5852,7 @@ index bc8c895..00c51cd 100644
 +
 +	la		($j,"0($wr0)");
 +	lgr		($count,$num);
-+LABEL("Lcopy:");	
++LABEL("Lcopy:");
 +	lg		($ahi,"$stdframe($j,$sp)");	# conditional copy
 +	lg		($alo,"0($j,$rp)");
 +	ngr		($ahi,$AHI);
@@ -5869,7 +5869,7 @@ index bc8c895..00c51cd 100644
 +	&{$z?\&lmg:\&lm} 	("%r6","%r15","0(%r1)");
 +} else {
 +	&{$z ? \&lg : \&l}	("R4","$stdframe+8+0*$SIZE_T($j,$sp)");	 # reload DSA pointer, other regs will be restored by exit macro
-+}	
++}
 +	lghi	($rv,1);		# signal "processed"
 +	FUNCTION_END("bn_mul_mont", $rv);
 +
@@ -6180,11 +6180,11 @@ index dd66a9c..a780d31 100755
 +	my ($a2,$b2,$c2,$d2)=map(($_&~3)+(($_+1)&3),($a1,$b1,$c1,$d1));
 +	my ($a3,$b3,$c3,$d3)=map(($_&~3)+(($_+1)&3),($a2,$b2,$c2,$d2));
 +	my @x;
-+if ($flavour =~ /linux/) {	
++if ($flavour =~ /linux/) {
 +	@x=map("%v$_",(0..15));
 +} else {
 +	@x=map("V$_",(0..15));
-+}	
++}
 +
 +	vaf	(@x[$a0],@x[$a0],@x[$b0]);	# Q1
 +	vx		(@x[$d0],@x[$d0],@x[$a0]);
@@ -6301,9 +6301,9 @@ index dd66a9c..a780d31 100755
 +	la      ($sp,"STACK");		# setup stack
 +	&{$z? \&stg:\&st} ("R4","15*$SIZE_T($sp)");	# Store R4 before it is corrupted (and in unused r15 slot so it won't get overwritten by saving $len)
 +	&{$z? \&lg:\&l}	("R9","$DSA_OFF(R4)");      # Get DSA address, before corrupting R4
-+	
++
 +	# move parms into appropriate regs
-+	lgr		($len,"R3");						# R4 is now corrupted 
++	lgr		($len,"R3");						# R4 is now corrupted
 +	lgr		($inp,"R2");
 +	lgr		($out,"R1");
 +	GET_EXTERN ($wr1,"OPENSSL_s390xcap_P");		# Get external before R5 is corrupted
@@ -6329,7 +6329,7 @@ index dd66a9c..a780d31 100755
 +	&{$z? \&slgr:\&slr }	($out,$inp);	# difference
 +	la		($len,"0($inp,$len)");	# end of input minus 64
 +	larl	($wr7,LABEL("Lsigma"));
-+	lgr		($wr0,$sp); 
++	lgr		($wr0,$sp);
 +	la		($sp,"0($wr1,$sp)");
 +	&{$z? \&stg:\&st}	($wr0,"0($sp)");
 +
@@ -6452,9 +6452,9 @@ index dd66a9c..a780d31 100755
 +	stmg	($wr0,$wr3,"$stdframe+4*12($sp)");
 +if ($flavour =~ /linux/) {
 +	&{$z? \&lmg:\&lm}	("%r6","%r15","$frame+6*$SIZE_T($sp)");
-+} else {	
++} else {
 +	&{$z? \&lg:\&l}	("R4","$frame+15*$SIZE_T($sp)");
-+}	
++}
 +	BR_EXIT	();
 +
 +ALIGN(16);
@@ -6496,9 +6496,9 @@ index dd66a9c..a780d31 100755
 +# the pipeline is higher, so that effectively, short inputs would be
 +# processed slower. Hence this code path targeting <=256 bytes lengths.
 +#
-+# Notes: This function is not called from outside the assembler module, well right now at least. 
++# Notes: This function is not called from outside the assembler module, well right now at least.
 +# Originally it was a local function however on z/OS we have to make it a real function so that the
-+# Exit macro is used to return to the caller, as this function returns directly back to the caller 
++# Exit macro is used to return to the caller, as this function returns directly back to the caller
 +# of ChaCha20_ctr32 rather than returning to ChaCha20_ctr32. As the z/OS exit macro is used to handle
 +# the DSA processing (don't try to do it yourself, if it ever changes you will get bitten) the entry
 +# macro although it generates code that is not actually executed, is required by the assembler. So,
@@ -6826,7 +6826,7 @@ index dd66a9c..a780d31 100755
 +	($a0,$b0,$c0,$d0, $a1,$b1,$c1,$d1,
 +    $a2,$b2,$c2,$d2, $a3,$b3,$c3,$d3,
 +    $a4,$b4,$c4,$d4, $a5,$b5,$c5,$d5)=map("%v$_",(0..23));
-+    
++
 +	@K=map("%v$_",(27,24..26));
 +	($t0,$t1,$t2,$t3)=map("%v$_",27..30);
 +	$beperm="%v31";
@@ -6834,7 +6834,7 @@ index dd66a9c..a780d31 100755
 +	($a0,$b0,$c0,$d0, $a1,$b1,$c1,$d1,
 +    $a2,$b2,$c2,$d2, $a3,$b3,$c3,$d3,
 +    $a4,$b4,$c4,$d4, $a5,$b5,$c5,$d5)=map("V$_",(0..23));
-+    
++
 +	@K=map("V$_",(27,24..26));
 +	($t0,$t1,$t2,$t3)=map("V$_",27..30);
 +	$beperm="V31";
@@ -6843,9 +6843,9 @@ index dd66a9c..a780d31 100755
 +#
 +# ChaCha20_ctr32_vx
 +#
-+# Notes: This function is not called from outside the assembler module, well right now at least. 
++# Notes: This function is not called from outside the assembler module, well right now at least.
 +# Originally it was a local function however on z/OS we have to make it a real function so that the
-+# Exit macro is used to return to the caller, as this function returns directly back to the caller 
++# Exit macro is used to return to the caller, as this function returns directly back to the caller
 +# of ChaCha20_ctr32 rather than returning to ChaCha20_ctr32. As the z/OS exit macro is used to handle
 +# the DSA processing (don't try to do it yourself, if it ever changes you will get bitten) the entry
 +# macro although it generates code that is not actually executed, is required by the assembler. So,
@@ -7386,8 +7386,8 @@ index f0ecc0b..90712db 100644
  /*
   * For systems that don't provide an instruction counter register or equivalent.
   */
-+ 
-+#if !defined(__MVS__) 
++
++#if !defined(__MVS__)
  uint32_t OPENSSL_rdtsc(void)
  {
      return 0;
@@ -7876,12 +7876,12 @@ index 2f3ca29..eb2f257 100644
 +    $z=0;    # S/390 ABI
  	$SIZE_T=4;
  	$g="";
-+    $PARMS_OFF=2112;	
++    $PARMS_OFF=2112;
  } else {
 +    $z=1;    # zSeries/zOS  ABI
  	$SIZE_T=8;
  	$g="g";
-+    $PARMS_OFF=2176;	
++    $PARMS_OFF=2176;
  }
  
  while (($output=shift) && ($output!~/\w[\w\-]*\.\w+$/)) {}
@@ -8099,7 +8099,7 @@ index 2f3ca29..eb2f257 100644
 +	$Zlo="%r1";
 +
 +	$Xi="%r2";	# argument block
-+	$Htbl="%r3";	
++	$Htbl="%r3";
 +	$inp="%r4";		@kimd_op2=("%r4","%r5");
 +	$len="%r5";
 +
@@ -8146,7 +8146,7 @@ index 2f3ca29..eb2f257 100644
 +	$wr1="R1";
 +	$wr8="R8";
 +	$rv = "R3";
-+	
++
 +	#$sp="R15"; # Not needed by z/OS unless disabled code in gcm_gmult_4bit is enabled
 +	$ip="*";
 +}
@@ -8160,7 +8160,7 @@ index 2f3ca29..eb2f257 100644
 +if (! $softonly && 0) {
 +	GET_EXTERN($xcap,"OPENSSL_s390xcap_P");	# before r5 is corrupted
 +	la      ($sp,"STACK") if ($flavour !~ /linux/);		# set up stack for zos
-+	
++
 +	lghi	($wr0,0);
 +	lg		($wr8,"CS390X_KIMD+8($xcap)");	# load second word of kimd capabilities
 +											#  vector
@@ -8186,7 +8186,7 @@ index 2f3ca29..eb2f257 100644
 +	lg		($Zlo,"8+1($Xi)");		# Xi
 +	j		(LABEL("Lgmult_shortcut"));
 +# Note this generates strange and unused code because of the jump out to common code
-+FUNCTION_END("gcm_gmult_4bit",$rv); 
++FUNCTION_END("gcm_gmult_4bit",$rv);
 +
 +#
 +# void gcm_ghash(u64 Xi[2], const u128 Htable[16], const u8 *inp, size_t len);
@@ -8199,11 +8199,11 @@ index 2f3ca29..eb2f257 100644
 +											#  vector
 +	tmhh	($wr0,0x4000);					# check for function 65
 +	jz		(LABEL("Lsoft_ghash"));
-+	
++
 +if ($flavour !~ /linux/) {
-+	&{$z? \&lgr:\&lr}	(@kimd_op2[0],$inp);		# Move inp into even reg 
++	&{$z? \&lgr:\&lr}	(@kimd_op2[0],$inp);		# Move inp into even reg
 +	&{$z? \&lg:\&l} ("R9","$DSA_OFF(R4)");     		# Get DSA address
-+  	&{$z? \&lg:\&l} (@kimd_op2[1],"$PARMS_OFF+$SIZE_T*3(R9)");	# Get len address
++	&{$z? \&lg:\&l} (@kimd_op2[1],"$PARMS_OFF+$SIZE_T*3(R9)");	# Get len address
 +}
 +	lghi	($wr0,"CS390X_GHASH");	# function 65
 +	la		($wr1,"0($Xi)") if ($flavour =~ /linux/);	# H lies right after Xi in gcm128_context - z/OS already has Xi in r1
@@ -8219,8 +8219,8 @@ index 2f3ca29..eb2f257 100644
 +} else {
 +	&{$z? \&lg:\&l} ("R9","$DSA_OFF(R4)");     				# Get DSA address
 +	&{$z? \&lg:\&llgf} ($len,"$PARMS_OFF+$SIZE_T*3(R9)");	# Get len address
-+}	
-+	
++}
++
 +	aghi	($Xi,-1);
 +	srlg	($len,$len,4);
 +	lghi	($x78,0x78);
@@ -8331,7 +8331,7 @@ index 2f3ca29..eb2f257 100644
 +	LONG(	0x0d940000,0x00000000,0x0c560000,0x00000000);
 +	LONG(	0x09180000,0x00000000,0x08da0000,0x00000000);
 +	LONG(	0x0a9c0000,0x00000000,0x0b5e0000,0x00000000);
-+	
++
 +OBJECT_END("rem_4bit");
 +ASCIZ	("GHASH for s390x, CRYPTOGAMS by <appro\@openssl.org>");
 +
@@ -8414,7 +8414,7 @@ index 7fb55c7..8a68756 100644
 +# was considered a desirable outcome.
 +#
 +# Access to global variables didn't always work and sometimes resulted in register corruption.
-+# No idea why and in some cases we just worked around that (SHA256/512) by passing OPENSSL_s390xcap_P as a 
++# No idea why and in some cases we just worked around that (SHA256/512) by passing OPENSSL_s390xcap_P as a
 +# parameter.
 +#
 +# Link semantics are xplink. We'd like to have supported both semantics but this file is enough of a mess now,
@@ -8457,8 +8457,8 @@ index 7fb55c7..8a68756 100644
 +# %r15 -> R4 (sp), %r14->R7 Return address, %r2 -> R3 simple return codes
 +# Note in Perl we do this in two hits otherwise the optimized regex will
 +# pick off %r15 as %r1 and ends up back as R15. Very annoying.
-+# 
-+# Note: This is fallback code. We recommend using symbols for registers in 
++#
++# Note: This is fallback code. We recommend using symbols for registers in
 +#       the asm routines instead in which case this code is never activated.
 +#
 +
@@ -8478,15 +8478,15 @@ index 7fb55c7..8a68756 100644
 +				"%f15" => "F15",
 +				"%f14" => "F14",
 +				"%f13" => "F13",
-+ 				"%f12" => "F12",
-+  				"%f11" => "F11",
-+  				"%f10" => "F10",
++				"%f12" => "F12",
++				"%f11" => "F11",
++				"%f10" => "F10",
 +				"%F15" => "F15",
 +				"%F14" => "F14",
 +				"%F13" => "F13",
-+ 				"%F12" => "F12",
-+  				"%F11" => "F11",
-+  				"%F10" => "F10",
++				"%F12" => "F12",
++				"%F11" => "F11",
++				"%F10" => "F10",
 +				"%v31"  => "V31",
 +				"%v30"  => "V30",
 +				"%v29"  => "V29",
@@ -8509,7 +8509,7 @@ index 7fb55c7..8a68756 100644
 +				"%v12"  => "V12",
 +				"%v11"  => "V11",
 +				"%v10"  => "V10",
-+ 				"%V31"  => "V31",
++				"%V31"  => "V31",
 +				"%V30"  => "V30",
 +				"%V29"  => "V29",
 +				"%V28"  => "V28",
@@ -8534,7 +8534,7 @@ index 7fb55c7..8a68756 100644
 +           );
 +
 +my %regmap1 = (
-+         	"%r9" => "R9",
++            "%r9" => "R9",
 +            "%r8" => "R8",
 +            "%r7" => "R14",
 +            "%r6" => "R6",
@@ -8584,7 +8584,7 @@ index 7fb55c7..8a68756 100644
 +				"%v2"  => "V2",
 +				"%v1"  => "V1",
 +				"%v0"  => "V0",
-+ 				"%V9"  => "V9",
++				"%V9"  => "V9",
 +				"%V8"  => "V8",
 +				"%V7"  => "V7",
 +				"%V6"  => "V6",
@@ -8644,7 +8644,7 @@ index 7fb55c7..8a68756 100644
 +   LINE: while ($line = <$fh> ) {
 +      if($line =~ /"#endif"/  || $line =~/#\s+endif/) {
 +         last;
-+      }   
++      }
 +   }
 +}
 +
@@ -8652,7 +8652,7 @@ index 7fb55c7..8a68756 100644
 +# and convert #define SYMBOL value
 +# to SYMBOL EQU value for assembler
 +# Note the use of #ifndef __ASSEMBLER__ to handle
-+# defines that this parser can't handle. 
++# defines that this parser can't handle.
 +# All we are after is manifest constants
 +# in the headers so these don't need to be in two places.
 +# i.e. #define FRED 2 as the asm phase can't really handle complex anyway
@@ -8668,10 +8668,10 @@ index 7fb55c7..8a68756 100644
 +		next LINE if ($line !~ /^#/);
 +      #     print "$line\n";
 +      if ($line =~ /ifndef/ && $line =~ /__ASSEMBLER__/) {
-+      #   print "Found no-asm block\n"; 
++      #   print "Found no-asm block\n";
 +			findEndif($fh);
 +			next LINE;
-+		}	
++		}
 +      # now look for #define SYMBOL VALUE #other rubbish
 +      if($line =~ /#define/ || $line =~ /#\s+define/ ) {
 +         # print "Found #define\n";
@@ -8681,13 +8681,13 @@ index 7fb55c7..8a68756 100644
 +         $line =~ s/^\s+//; # Trim leading whitespace
 +         my @words = split(/\s+/,$line);
 +         my $n = scalar(@words);
-+         # print "words = $n line = [$line]\n"; 
++         # print "words = $n line = [$line]\n";
 +         if($n >= 2) {
 +            if($words[1] =~ /0x/) {
 +               $words[1] = substr $words[1],2;
 +               $output .= "$words[0]   EQU X'$words[1]'\n";
 +            } else {
-+               $output .= "$words[0]   EQU $words[1]\n";   
++               $output .= "$words[0]   EQU $words[1]\n";
 +            }
 +         }
 +      }
@@ -8705,7 +8705,7 @@ index 7fb55c7..8a68756 100644
 +# global .modern. By default we convert "new" instructions to bytes directly
 +#                 As the compiler/asm improves this may not be needed in which case
 +#                 we can also emit the correct opcodes.
-+#         Also potentially useful for debug on linux as you can at least read the code 
++#         Also potentially useful for debug on linux as you can at least read the code
 +#         with modern=1 where .long 0x..... is fairly hard to understand
 +#
  sub PERLASM_BEGIN
@@ -8727,16 +8727,16 @@ index 7fb55c7..8a68756 100644
 +		$exitMacro = "CELQEPLG";
 +	}
  }
-+# 
++#
 +# Finalization phase for the .pl to .s process.
 +# 	At this point we have a multiline perl string in memory
-+#  do any last gasp fixups and write the output 
++#  do any last gasp fixups and write the output
 +#
  sub PERLASM_END
  {
 +	# finally, translate zLInux resgister usage to zOS usage
 +	# if we are emitting code for z/OS
-+	# Done late because the %r of the zLinux form makes it 
++	# Done late because the %r of the zLinux form makes it
 +	# easy to distinguish opcodes from say r in a comment
 +	# NOTE: It's better to use symbols in the source and avoid
 +	#        the automatic register mapping
@@ -8746,17 +8746,17 @@ index 7fb55c7..8a68756 100644
 +
 +		$out=~ s/($regkeys2)/$regmap2{$1}/g;
 +		$out=~ s/($regkeys1)/$regmap1{$1}/g;
-+		
++
 +		$out=~ s/0x([0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F])\(/X'$1'\(/g;
 +		$out=~ s/0x([0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]) /X'$1' /g;
 +		$out=~ s/0x([0-9a-fA-F][0-9a-fA-F])\(/X'$1'\(/g;
 +		$out=~ s/0x([0-9a-fA-F][0-9a-fA-F]) /X'$1' /g;
-+				
++
 +	   # $out=~ s/\`([^\`]*)\`/eval $1/gem; # Evaluate any quoted ` ` maths
 +		zRegs();
-+	   # if Text::tabs is unacceptable 
++	   # if Text::tabs is unacceptable
 +		# $out.= s/\t/    /g; works but produces ugly output. 
-+		# It's not human maintained at that point, so maybe we don't care. 
++		# It's not human maintained at that point, so maybe we don't care.
 +		my @lst = split(/\n/,$out);
 +		@lst = expand(@lst);
 +		$out = join("\n",@lst);
@@ -8781,12 +8781,12 @@ index 7fb55c7..8a68756 100644
 -	$out.=$token.join(',',@_)."\n";
 +	if ( $flavour =~/linux/) {
 +		$token.="\t" if ($#_>=0);
-+		
++
 +		$out.=$token.join(',',@_)."\n";
 +	} else {
 +		$token.="    " if ($#_>=0);
 +		$out.=$token;
-+		
++
 +		my $operands = '';
 +		foreach (@_) {
 +			$token = $_;
@@ -8805,7 +8805,7 @@ index 7fb55c7..8a68756 100644
 -	confess(err("ARGNUM")) if ($#_!=0);
 +#
 +# LABEL( <label>[:]);
-+# If the optional ":" is included then a LABEL declaration will be emitted, 
++# If the optional ":" is included then a LABEL declaration will be emitted,
 +# otherwise a correctly formated label useful for branching to will be returned.
 +#
 +sub LABEL {
