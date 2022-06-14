@@ -32,14 +32,14 @@ index 906b284..02f98e9 100644
 +   unsigned int icap[2];
 +   } u;
 +
-   OPENSSL_cpuid_setup();
+   OPENSSL_cpuid_setup(); 
 -  *id = (long long)OPENSSL_ia32_cpuid(OPENSSL_ia32cap_P);
 +  u.icap[0] = OPENSSL_ia32cap_P[0];
 +  u.icap[1] = OPENSSL_ia32cap_P[1];
 +  *id = u.cap;
    return 1;
  }
- 
+
 diff --git a/crypto/x86_64cpuid.pl b/crypto/x86_64cpuid.pl
 index d9536d6..eb7f1b1 100644
 --- a/crypto/x86_64cpuid.pl

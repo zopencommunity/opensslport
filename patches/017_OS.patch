@@ -25,7 +25,7 @@ index 02f98e9..78c7775 100644
 --- a/crypto/cryptlib.c
 +++ b/crypto/cryptlib.c
 @@ -598,7 +598,7 @@ extern void s390x_trng(void *buff,size_t len);
- 
+
  int OPENSSL_HW_rand(unsigned char *buf)
  {
 -  if(OPENSSL_s390xcap_P[18] & S390X_PRNO_TRNG) {
@@ -65,7 +65,7 @@ index 65ce3cd..213aebb 100644
 +++ b/crypto/s390xcap.c
 @@ -76,6 +76,7 @@ int OPENSSL_cpuid(long long *id);
  
- int OPENSSL_cpuid_override(long long mask)
+ int OPENSSL_cpuid_override(long long mask) 
  {
 +#if 0
    union {

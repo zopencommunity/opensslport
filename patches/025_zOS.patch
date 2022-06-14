@@ -2806,7 +2806,7 @@ index 4cb8f43..8a1e07a 100644
 +    lgr    ("R2",$outp);
 +}
 +    bras   ($ra,"_s390x_AES_encrypt");
-+    
++
 +if ($flavour =~ /linux/) {
 +  &{$z? \&lmg:\&lm} ($inp,$key,"2*$SIZE_T($sp)");         # this is 2->5
 +} else {
@@ -3070,7 +3070,7 @@ index 4cb8f43..8a1e07a 100644
 +    $inp="R1";
 +    $outp="R2";
 +    $len="R3";
-+    $key="R5"; # in DSA 
++    $key="R5"; # in DSA
 +    $iv0="R5";
 +    $ivp="R6"; # in DSA
 +    $fp ="R7";
@@ -3153,7 +3153,7 @@ index 4cb8f43..8a1e07a 100644
 +    lghi    ($s2,0);                      # no AAD
 +    lghi    ($s3,0);
 +# kma needs $inp to be an even reg, $inp+1 is required, $s2 must be even, $s2+1 is required, outp must be even but no +1 reg required
-+    kma     ($outp,$s2,$inp);             # long    0xb929a042    # kma     ("%r14","%r10","%r2");             # long    0xb929a042        
++    kma     ($outp,$s2,$inp);             # long    0xb929a042    # kma     ("%r14","%r10","%r2");             # long    0xb929a042
 +    brc     (1,"$ip-4");                  # pay attention to "partial completion"
 +
 +    stg     ($wr0,"$stdframe+80($sp)");   # wipe key
@@ -3210,7 +3210,7 @@ index 4cb8f43..8a1e07a 100644
 +    larl    ($wr1,"OPENSSL_s390xcap_P");  # this might not work as r5 has been corrupted before getting here
 +} else {
 +    lgr     ($wr1,$xcap);
-+}    
++}
 +    llihh   ($wr0,"0x8000");              # check if kmctr supports the function code
 +    srlg    ($wr0,$wr0,"0($s0)");
 +    ng      ($wr0,"CS390X_KMCTR($wr1)");   # check kmctr capability vector
@@ -4158,7 +4158,7 @@ index 4cb8f43..8a1e07a 100644
 +    la      ($wr1,"0($key1)");            # restore $key1
 +&{$z? \&lgr:\&lr} ("R13",$ra) if ($flavour !~ /linux/); # save return address
 +    jz      (LABEL("Lxts_km_vanilla"));
-+    
++
 +    lmg     ($i2,$i3,"$tweak($sp)");      # put aside the tweak value
 +    algr    ($outp,$inp);
 +

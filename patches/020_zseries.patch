@@ -1540,23 +1540,23 @@ index 213aebb..d81b188 100644
 -  *id = u.cap;
 -#endif
 -  return 0;
-+  if( 0 == (capbits & I_S390X_SHA3_256) ) { 
++  if( 0 == (capbits & I_S390X_SHA3_256) ) {
 +    OPENSSL_s390xcap_P.kimd[0] &= ~S390X_CAPBIT(S390X_SHA3_256);
 +    OPENSSL_s390xcap_P.klmd[0] &= ~S390X_CAPBIT(S390X_SHA3_256);
 +  }
-+  if( 0 == (capbits & I_S390X_SHA3_384) ) { 
++  if( 0 == (capbits & I_S390X_SHA3_384) ) {
 +    OPENSSL_s390xcap_P.kimd[0] &= ~S390X_CAPBIT(S390X_SHA3_384);
 +    OPENSSL_s390xcap_P.klmd[0] &= ~S390X_CAPBIT(S390X_SHA3_384);
 +  }
-+  if( 0 == (capbits & I_S390X_SHA3_512) ) { 
++  if( 0 == (capbits & I_S390X_SHA3_512) ) {
 +    OPENSSL_s390xcap_P.kimd[0] &= ~S390X_CAPBIT(S390X_SHA3_512);
 +    OPENSSL_s390xcap_P.klmd[0] &= ~S390X_CAPBIT(S390X_SHA3_512);
 +  }
-+  if( 0 == (capbits & I_S390X_SHAKE_128) ) { 
++  if( 0 == (capbits & I_S390X_SHAKE_128) ) {
 +    OPENSSL_s390xcap_P.kimd[0] &= ~S390X_CAPBIT(S390X_SHAKE_128);
 +    OPENSSL_s390xcap_P.klmd[0] &= ~S390X_CAPBIT(S390X_SHAKE_128);
 +  }
-+  if( 0 == (capbits & I_S390X_SHAKE_256) ) { 
++  if( 0 == (capbits & I_S390X_SHAKE_256) ) {
 +    OPENSSL_s390xcap_P.kimd[0] &= ~S390X_CAPBIT(S390X_SHAKE_256);
 +    OPENSSL_s390xcap_P.klmd[0] &= ~S390X_CAPBIT(S390X_SHAKE_256);
 +  }
@@ -1586,7 +1586,7 @@ index 213aebb..d81b188 100644
 +  }
 +
 +}
-+int OPENSSL_cpuid_override(unsigned long long mask) 
++int OPENSSL_cpuid_override(unsigned long long mask)
 +{
 +  ICC_2OSSL(mask);
 +  return 1;

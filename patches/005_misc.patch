@@ -72,12 +72,12 @@ index 12dc87c..2b20525 100644
 @@ -256,9 +267,9 @@ static int des_ede3_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
      DES_cblock *deskey = (DES_cblock *)key;
      DES_EDE_KEY *dat = data(ctx);
- 
+
 -    if((0 == CRYPTO_memcmp(&deskey[0],&deskey[1],8)) ||
 +    if((0 == allow_2keyDes3) && ((0 == CRYPTO_memcmp(&deskey[0],&deskey[1],8)) ||
         (0 == CRYPTO_memcmp(&deskey[0],&deskey[2],8)) ||
 -       (0 == CRYPTO_memcmp(&deskey[1],&deskey[2],8))
-+				 (0 == CRYPTO_memcmp(&deskey[1],&deskey[2],8)))
++       (0 == CRYPTO_memcmp(&deskey[1],&deskey[2],8)))
      ) {
-       return 0;	
+       return 0;        
      }
