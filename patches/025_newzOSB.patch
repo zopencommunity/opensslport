@@ -1,0 +1,466 @@
+diff --git a/crypto/bn/asm/s390x-gf2m.pl b/crypto/bn/asm/s390x-gf2m.pl
+index a7e4b8a..dc05a93 100644
+--- a/crypto/bn/asm/s390x-gf2m.pl
++++ b/crypto/bn/asm/s390x-gf2m.pl
+@@ -1,5 +1,5 @@
+ #! /usr/bin/env perl
+-# Copyright 2011-2020 The OpenSSL Project Authors. All Rights Reserved.
++# Copyright 2011-2016 The OpenSSL Project Authors. All Rights Reserved.
+ #
+ # Licensed under the OpenSSL license (the "License").  You may not use
+ # this file except in compliance with the License.  You can obtain a copy
+@@ -31,198 +31,275 @@
+ # (*)	gcc 4.1 was observed to deliver better results than gcc 4.3,
+ #	so that improvement coefficients can vary from one specific
+ #	setup to another.
++use strict;
++use FindBin qw($Bin);
++use lib "$Bin/../..";
++use perlasm::s390x qw(:MSA :DEFAULT :VX :LD AUTOLOAD LABEL INCLUDE FUNCTION_BEGIN FUNCTION_END LOCAL_FUNCTION LOCAL_FUNCTION_END OBJECT_BEGIN OBJECT_END BYTE LONG QUAD ALIGN ASCIZ TEXT GET_EXTERN LOCAL_VARS_BEGIN LOCAL_VARS_END ds);
++
++my ($flavour,$output,$DSA_OFF,$PARMS_OFF,$SIZE_T,$z);
+ 
+ $flavour = shift;
+ 
++$DSA_OFF=2048;
++$SIZE_T = 8; # 64 bit, 31 bit zOS
+ if ($flavour =~ /3[12]/) {
+-        $SIZE_T=4;
+-        $g="";
++   $z=0;	# 31/32 bit ABI
++   if($flavour =~ /linux/) {
++      $SIZE_T = 4;
++   }
++   $PARMS_OFF=2112
+ } else {
+-        $SIZE_T=8;
+-        $g="g";
++   $z=1;	# 64 bit ABI
++   $PARMS_OFF=2176
+ }
+ 
+ while (($output=shift) && ($output!~/\w[\w\-]*\.\w+$/)) {}
+ open STDOUT,">$output";
+ 
+-$stdframe=16*$SIZE_T+4*8;
+-
+-$rp="%r2";
+-$a1="%r3";
+-$a0="%r4";
+-$b1="%r5";
+-$b0="%r6";
+-
+-$ra="%r14";
+-$sp="%r15";
+-
+-@T=("%r0","%r1");
+-@i=("%r12","%r13");
+-
+-($a1,$a2,$a4,$a8,$a12,$a48)=map("%r$_",(6..11));
+-($lo,$hi,$b)=map("%r$_",(3..5)); $a=$lo; $mask=$a8;
+-
+-$code.=<<___;
+-.text
+-
+-.type	_mul_1x1,\@function
+-.align	16
+-_mul_1x1:
+-	lgr	$a1,$a
+-	sllg	$a2,$a,1
+-	sllg	$a4,$a,2
+-	sllg	$a8,$a,3
+-
+-	srag	$lo,$a1,63			# broadcast 63rd bit
+-	nihh	$a1,0x1fff
+-	srag	@i[0],$a2,63			# broadcast 62nd bit
+-	nihh	$a2,0x3fff
+-	srag	@i[1],$a4,63			# broadcast 61st bit
+-	nihh	$a4,0x7fff
+-	ngr	$lo,$b
+-	ngr	@i[0],$b
+-	ngr	@i[1],$b
+-
+-	lghi	@T[0],0
+-	lgr	$a12,$a1
+-	stg	@T[0],`$stdframe+0*8`($sp)	# tab[0]=0
+-	xgr	$a12,$a2
+-	stg	$a1,`$stdframe+1*8`($sp)	# tab[1]=a1
+-	 lgr	$a48,$a4
+-	stg	$a2,`$stdframe+2*8`($sp)	# tab[2]=a2
+-	 xgr	$a48,$a8
+-	stg	$a12,`$stdframe+3*8`($sp)	# tab[3]=a1^a2
+-	 xgr	$a1,$a4
+-
+-	stg	$a4,`$stdframe+4*8`($sp)	# tab[4]=a4
+-	xgr	$a2,$a4
+-	stg	$a1,`$stdframe+5*8`($sp)	# tab[5]=a1^a4
+-	xgr	$a12,$a4
+-	stg	$a2,`$stdframe+6*8`($sp)	# tab[6]=a2^a4
+-	 xgr	$a1,$a48
+-	stg	$a12,`$stdframe+7*8`($sp)	# tab[7]=a1^a2^a4
+-	 xgr	$a2,$a48
+-
+-	stg	$a8,`$stdframe+8*8`($sp)	# tab[8]=a8
+-	xgr	$a12,$a48
+-	stg	$a1,`$stdframe+9*8`($sp)	# tab[9]=a1^a8
+-	 xgr	$a1,$a4
+-	stg	$a2,`$stdframe+10*8`($sp)	# tab[10]=a2^a8
+-	 xgr	$a2,$a4
+-	stg	$a12,`$stdframe+11*8`($sp)	# tab[11]=a1^a2^a8
+-
+-	xgr	$a12,$a4
+-	stg	$a48,`$stdframe+12*8`($sp)	# tab[12]=a4^a8
+-	 srlg	$hi,$lo,1
+-	stg	$a1,`$stdframe+13*8`($sp)	# tab[13]=a1^a4^a8
+-	 sllg	$lo,$lo,63
+-	stg	$a2,`$stdframe+14*8`($sp)	# tab[14]=a2^a4^a8
+-	 srlg	@T[0],@i[0],2
+-	stg	$a12,`$stdframe+15*8`($sp)	# tab[15]=a1^a2^a4^a8
+-
+-	lghi	$mask,`0xf<<3`
+-	sllg	$a1,@i[0],62
+-	 sllg	@i[0],$b,3
+-	srlg	@T[1],@i[1],3
+-	 ngr	@i[0],$mask
+-	sllg	$a2,@i[1],61
+-	 srlg	@i[1],$b,4-3
+-	xgr	$hi,@T[0]
+-	 ngr	@i[1],$mask
+-	xgr	$lo,$a1
+-	xgr	$hi,@T[1]
+-	xgr	$lo,$a2
+-
+-	xg	$lo,$stdframe(@i[0],$sp)
+-	srlg	@i[0],$b,8-3
+-	ngr	@i[0],$mask
+-___
++PERLASM_BEGIN($flavour,$output);
++
++my ($stdframe,$rp,$b1,$b0,$ra,$sp,@T,@i);
++my ($a0,$a1,$a2,$a4,$a8,$a12,$a48);
++my ($lo,$hi,$b,$a,$mask);
++my ($n,@r);
++my ($wr0,$wr1);
++my $rv;
++
++if($flavour =~ /linux/) {
++	$stdframe=16*$SIZE_T+4*8;
++
++	$rp="%r2";
++	$a1="%r3";
++	$a0="%r4";
++	$b1="%r5";
++	$b0="%r6";
++
++	$wr0="%r0";
++	$wr1="%r1";
++
++	$ra="%r14";
++	$sp="%r15";
++
++	@T=("%r0","%r1");
++	@i=("%r12","%r13");
++
++	($a1,$a2,$a4,$a8,$a12,$a48)=map("%r$_",(6..11));  # a1 seems to be above also, so this is probably breaking the a1 parameter access.
++	($lo,$hi,$b)=map("%r$_",(3..5)); $a=$lo; $mask=$a8;
++	$rv = "%r2";
++} else {
++	$stdframe=16*$SIZE_T+4*8;
++
++	$rp="R2";	# passed in reg1
++	$a1="R3";	# passed in reg2
++	$a0="R4";	# passed in reg3
++	$b1="R5";	# passed in DSA
++	$b0="R6";	# passed in DSA
++
++	$wr0="R0";
++	$wr1="R1";
++
++	$ra="R14";
++	$sp="R15";
++
++	@T=("R0","R1");
++	@i=("R12","R13");
++
++	($a1,$a2,$a4,$a8,$a12,$a48)=map("R$_",(6..11));  # a1 seems to be above also, so this is probably breaking the a1 parameter access.
++	($lo,$hi,$b)=map("R$_",(3..5));
++	$a=$lo; $mask=$a8;
++	$rv = "R3";
++}
++
++
++
++	TEXT();
++LOCAL_FUNCTION("_mul_1x1");		# Not sure on parameters
++
++	lgr	($a1,$a);
++	sllg	($a2,$a,1);
++	sllg	($a4,$a,2);
++	sllg	($a8,$a,3);
++
++	srag	($lo,$a1,63);			# broadcast 63rd bit
++	nihh	($a1,0x1fff);
++	srag	(@i[0],$a2,63);			# broadcast 62nd bit
++	nihh	($a2,0x3fff);
++	srag	(@i[1],$a4,63);			# broadcast 61st bit
++	nihh	($a4,0x7fff);
++	ngr	($lo,$b);
++	ngr	(@i[0],$b);
++	ngr	(@i[1],$b);
++
++	lghi	(@T[0],0);
++	lgr	($a12,$a1);
++	stg	(@T[0],"$stdframe+0*8($sp)");	# tab[0]=0
++	xgr	($a12,$a2);
++	stg	($a1,"$stdframe+1*8($sp)");	# tab[1]=a1
++	lgr	($a48,$a4);
++	stg	($a2,"$stdframe+2*8($sp)");	# tab[2]=a2
++	xgr	($a48,$a8);
++	stg	($a12,"$stdframe+3*8($sp)");	# tab[3]=a1^a2
++	xgr	($a1,$a4);
++
++	stg	($a4,"$stdframe+4*8($sp)");	# tab[4]=a4
++	xgr	($a2,$a4);
++	stg	($a1,"$stdframe+5*8($sp)");	# tab[5]=a1^a4
++	xgr	($a12,$a4);
++	stg	($a2,"$stdframe+6*8($sp)");	# tab[6]=a2^a4
++	xgr	($a1,$a48);
++	stg	($a12,"$stdframe+7*8($sp)");	# tab[7]=a1^a2^a4
++	xgr	($a2,$a48);
++
++	stg	($a8,"$stdframe+8*8($sp)");	# tab[8]=a8
++	xgr	($a12,$a48);
++	stg	($a1,"$stdframe+9*8($sp)");	# tab[9]=a1^a8
++	xgr	($a1,$a4);
++	stg	($a2,"$stdframe+10*8($sp)");	# tab[10]=a2^a8
++	xgr	($a2,$a4);
++	stg	($a12,"$stdframe+11*8($sp)");	# tab[11]=a1^a2^a8
++
++	xgr	($a12,$a4);
++	stg	($a48,"$stdframe+12*8($sp)");	# tab[12]=a4^a8
++	srlg	($hi,$lo,1);
++	stg	($a1,"$stdframe+13*8($sp)");	# tab[13]=a1^a4^a8
++	sllg	($lo,$lo,63);
++	stg	($a2,"$stdframe+14*8($sp)");	# tab[14]=a2^a4^a8
++	srlg	(@T[0],@i[0],2);
++	stg	($a12,"$stdframe+15*8($sp)");	# tab[15]=a1^a2^a4^a8
++
++	lghi	($mask,0xf<<3);
++	sllg	($a1,@i[0],62);
++	sllg	(@i[0],$b,3);
++	srlg	(@T[1],@i[1],3);
++	ngr	(@i[0],$mask);
++	sllg	($a2,@i[1],61);
++	srlg	(@i[1],$b,4-3);
++	xgr	($hi,@T[0]);
++	ngr	(@i[1],$mask);
++	xgr	($lo,$a1);
++	xgr	($hi,@T[1]);
++	xgr	($lo,$a2);
++
++	xg		($lo,"$stdframe(@i[0],$sp)");
++	srlg	(@i[0],$b,8-3);
++	ngr	(@i[0],$mask);
++
+ for($n=1;$n<14;$n++) {
+-$code.=<<___;
+-	lg	@T[1],$stdframe(@i[1],$sp)
+-	srlg	@i[1],$b,`($n+2)*4`-3
+-	sllg	@T[0],@T[1],`$n*4`
+-	ngr	@i[1],$mask
+-	srlg	@T[1],@T[1],`64-$n*4`
+-	xgr	$lo,@T[0]
+-	xgr	$hi,@T[1]
+-___
++	lg		(@T[1],"$stdframe(@i[1],$sp)");
++	srlg	(@i[1],$b,"(($n+2)*4)-3");
++	sllg	(@T[0],@T[1],"$n*4");
++	ngr	(@i[1],$mask);
++	srlg	(@T[1],@T[1],64-$n*4);
++	xgr	($lo,@T[0]);
++	xgr	($hi,@T[1]);
++
+ 	push(@i,shift(@i)); push(@T,shift(@T));
+ }
+-$code.=<<___;
+-	lg	@T[1],$stdframe(@i[1],$sp)
+-	sllg	@T[0],@T[1],`$n*4`
+-	srlg	@T[1],@T[1],`64-$n*4`
+-	xgr	$lo,@T[0]
+-	xgr	$hi,@T[1]
+-
+-	lg	@T[0],$stdframe(@i[0],$sp)
+-	sllg	@T[1],@T[0],`($n+1)*4`
+-	srlg	@T[0],@T[0],`64-($n+1)*4`
+-	xgr	$lo,@T[1]
+-	xgr	$hi,@T[0]
+-
+-	br	$ra
+-.size	_mul_1x1,.-_mul_1x1
+-
+-.globl	bn_GF2m_mul_2x2
+-.type	bn_GF2m_mul_2x2,\@function
+-.align	16
+-bn_GF2m_mul_2x2:
+-	stm${g}	%r3,%r15,3*$SIZE_T($sp)
+-
+-	lghi	%r1,-$stdframe-128
+-	la	%r0,0($sp)
+-	la	$sp,0(%r1,$sp)			# alloca
+-	st${g}	%r0,0($sp)			# back chain
+-___
++
++	lg		(@T[1],"$stdframe(@i[1],$sp)");
++	sllg	(@T[0],@T[1],$n*4);
++	srlg	(@T[1],@T[1],64-$n*4);
++	xgr	($lo,@T[0]);
++	xgr	($hi,@T[1]);
++
++	lg		(@T[0],"$stdframe(@i[0],$sp)");
++	sllg	(@T[1],@T[0],($n+1)*4);
++	srlg	(@T[0],@T[0],64-($n+1)*4);
++	xgr	($lo,@T[1]);
++	xgr	($hi,@T[0]);
++	br	($ra);
++LOCAL_FUNCTION_END("_mul_1x1",$rv);
++
++#
++#void bn_GF2m_mul_2x2(BN_ULONG *r, BN_ULONG a1, BN_ULONG a0, BN_ULONG b1, BN_ULONG b0);
++#
++FUNCTION_BEGIN("bn_GF2m_mul_2x2",5,"true");
++  if ($flavour =~ /linux/) {
++	&{$z? \&stmg :\&stm}	("%r3","%r15","3*$SIZE_T($sp)");
++  } else {
++&{$z? \&lg:\&l} ("R9","$DSA_OFF(R4)");            # Get DSA address
++    if ($z == 0) {
++        # In 31 bit pointers are 4 bytes long, BN_ULONG are 8 bytes long
++        # *r takes up 4 bytes, we don't need to reload this parameter because z/OS got it right.
++        # But *r only takes up 4 bytes the other parameters take up 8 bytes. The 4 bytes at the front must be accounted for all the following parameters.
++        lg      ("R2","$PARMS_OFF+4+$SIZE_T*0(R9)"); # Get a1
++        lg      ("R3","$PARMS_OFF+4+$SIZE_T*1(R9)"); # Get a0
++        lg      ($b1,"$PARMS_OFF+4+$SIZE_T*2(R9)"); # Get b1
++        lg      ($b0,"$PARMS_OFF+4+$SIZE_T*3(R9)"); # Get b0
++    } else {
++        lg      ($b1,"$PARMS_OFF+$SIZE_T*3(R9)"); # Get b1
++        lg      ($b0,"$PARMS_OFF+$SIZE_T*4(R9)"); # Get b0
++    }
++
++    # Set the sp to the end of the STACK variable to allow it to go backwards. $sp = STACK+sizeof(STACK)-sizeof(savearea) or
++    # DC STACK 240F, DC SAVEAREA 16F
++    la      ($sp,"SAVEAREA");
++    &{$z? \&stg:\&st}	("R4","0($sp)");				# DSA pointer must be restored before returning - $a0 is R4 also
++    lgr     ($a0,"R3");
++    lgr     ("R3","R2");
++    lgr     ($rp,"R1");
++    stmg    ("R3","R6","3*$SIZE_T($sp)"); # Save parms
++  }
++
++    lghi	($wr1,-$stdframe-128);
++    la		($wr0,"0($sp)");
++	la		($sp,"0($wr1,$sp)");			# alloca
++	&{$z? \&stg : \&st}	($wr0,"0($sp)");			# back chain
++
++    if($flavour =~ /linux/) {
++	@r=map("%r$_",(6..9));
++	} else {
++	@r=map("R$_",(6..9));	# These regs aren't used for anything else after the last bras call
++	}
++
+ if ($SIZE_T==8) {
+-my @r=map("%r$_",(6..9));
+-$code.=<<___;
+-	bras	$ra,_mul_1x1			# a1Â·b1
+-	stmg	$lo,$hi,16($rp)
+-
+-	lg	$a,`$stdframe+128+4*$SIZE_T`($sp)
+-	lg	$b,`$stdframe+128+6*$SIZE_T`($sp)
+-	bras	$ra,_mul_1x1			# a0Â·b0
+-	stmg	$lo,$hi,0($rp)
+-
+-	lg	$a,`$stdframe+128+3*$SIZE_T`($sp)
+-	lg	$b,`$stdframe+128+5*$SIZE_T`($sp)
+-	xg	$a,`$stdframe+128+4*$SIZE_T`($sp)
+-	xg	$b,`$stdframe+128+6*$SIZE_T`($sp)
+-	bras	$ra,_mul_1x1			# (a0+a1)Â·(b0+b1)
+-	lmg	@r[0],@r[3],0($rp)
+-
+-	xgr	$lo,$hi
+-	xgr	$hi,@r[1]
+-	xgr	$lo,@r[0]
+-	xgr	$hi,@r[2]
+-	xgr	$lo,@r[3]
+-	xgr	$hi,@r[3]
+-	xgr	$lo,$hi
+-	stg	$hi,16($rp)
+-	stg	$lo,8($rp)
+-___
++	bras	($ra,"_mul_1x1");			# a1Â·b1
++	stmg	($lo,$hi,"16($rp)");
++
++	lg		($a,"$stdframe+128+4*$SIZE_T($sp)");
++	lg		($b,"$stdframe+128+6*$SIZE_T($sp)");
++	bras	($ra,"_mul_1x1");			# a0*b0
++	stmg	($lo,$hi,"0($rp)");
++
++	lg		($a,"$stdframe+128+3*$SIZE_T($sp)");
++	lg		($b,"$stdframe+128+5*$SIZE_T($sp)");
++	xg		($a,"$stdframe+128+4*$SIZE_T($sp)");
++	xg		($b,"$stdframe+128+6*$SIZE_T($sp)");
++	bras	($ra,"_mul_1x1");			# (a0+a1)*(b0+b1)
++	lmg	(@r[0],@r[3],"0($rp)");
++
++	xgr	($lo,$hi);
++	xgr	($hi,@r[1]);
++	xgr	($lo,@r[0]);
++	xgr	($hi,@r[2]);
++	xgr	($lo,@r[3]);
++	xgr	($hi,@r[3]);
++	xgr	($lo,$hi);
++	stg	($hi,"16($rp)");
++	stg	($lo,"8($rp)");
+ } else {
+-$code.=<<___;
+-	sllg	%r3,%r3,32
+-	sllg	%r5,%r5,32
+-	or	%r3,%r4
+-	or	%r5,%r6
+-	bras	$ra,_mul_1x1
+-	rllg	$lo,$lo,32
+-	rllg	$hi,$hi,32
+-	stmg	$lo,$hi,0($rp)
+-___
++	sllg	($a,$a,32);
++	sllg	($b1,$b1,32);
++	&or	($a,$a0);
++	&or	($b1,$b0);
++	bras	($ra,"_mul_1x1");
++	rllg	($lo,$lo,32);
++	rllg	($hi,$hi,32);
++	stmg	($lo,$hi,"0($rp)");
+ }
+-$code.=<<___;
+-	lm${g}	%r6,%r15,`$stdframe+128+6*$SIZE_T`($sp)
+-	br	$ra
+-.size	bn_GF2m_mul_2x2,.-bn_GF2m_mul_2x2
+-.string	"GF(2^m) Multiplication for s390x, CRYPTOGAMS by <appro\@openssl.org>"
+-___
+-
+-$code =~ s/\`([^\`]*)\`/eval($1)/gem;
+-print $code;
+-close STDOUT or die "error closing STDOUT: $!";
++
++if ($flavour =~ /linux/) {
++	&{$z?  \&lmg :\&lm}	("%r6","%r15","$stdframe+128+6*$SIZE_T($sp)");
++} else {
++	&{$z? \&lg:\&l} ("R4","$stdframe+128+0*$SIZE_T($sp)");
++}
++FUNCTION_END("bn_GF2m_mul_2x2",$rv);
++	ASCIZ	("GF(2^m) Multiplication for s390x, CRYPTOGAMS by <appro\@openssl.org>");
++
++
++#$code =~ s/\`([^\`]*)\`/eval($1)/gem; # Hopefully done inline now
++LOCAL_VARS_BEGIN();
++    ds    ("STACK", "240F");
++    ds    ("SAVEAREA", "16F");
++LOCAL_VARS_END();
++PERLASM_END();
