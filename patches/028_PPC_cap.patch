@@ -144,13 +144,13 @@ index 2d8930f..942aefa 100644
  
      ecp_nistz256_mul_mont(res, in, one);
  }
-@@ -22009,59 +204,92 @@ size_t OPENSSL_instrument_bus2(unsigned int *out, size_t cnt, size_t max)
+@@ -209,59 +204,92 @@ size_t OPENSSL_instrument_bus2(unsigned int *out, size_t cnt, size_t max)
      else
          return 0;
-}
--19/* getauxval is almost USELESS here. 
+ }
+-/* getauxval is almost USELESS here.
 -   It's an OS facility so it only knows about hardware capabilities
--   that predate the OS. Which means it the build machine would need to 
+-   that predate the OS. Which means it the build machine would need to
 -   be current
 -   Drop this code and fall through to the "ouch that hurts" paths
 -*/
@@ -180,7 +180,7 @@ index 2d8930f..942aefa 100644
 +
 +#if defined(__GNUC__) && __GNUC__ >= 2
 +__attribute__((constructor))
-#endif
+ #endif
  
 -#if defined(__FreeBSD__)
 -# include <sys/param.h>
@@ -522,7 +522,7 @@ index 2d8930f..942aefa 100644
  */
 -int OPENSSL_cpuid(unsigned long long *id);
  
--int OPENSSL_cpuid_override(unsigned long long mask) 
+-int OPENSSL_cpuid_override(unsigned long long mask)
 +void OPENSSL_cpuid_setup()
 +{
 +    unsigned long mask = PPC_PERMITTED_MASK_BITS;
@@ -609,7 +609,7 @@ index 2d8930f..942aefa 100644
 +    u.icap[0] = OPENSSL_ppccap_P;
  #else
 -  u.icap[l-1] = OPENSSL_ppccap_P;
--#endif 
+-#endif
 +    u.icap[l - 1] = OPENSSL_ppccap_P;
 +#endif
 +
@@ -619,7 +619,7 @@ index 2d8930f..942aefa 100644
 +    u.cap &= tmask;
  
 -  u.cap &= tmask;
--  
+-
  #if (__BYTE_ORDER == __LITTLE_ENDIAN)
 -  OPENSSL_ppccap_P = u.icap[0];
 +    OPENSSL_ppccap_P = u.icap[0];
