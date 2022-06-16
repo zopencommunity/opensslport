@@ -2055,7 +2055,7 @@ index f0ecc0b..90712db 100644
    return 1;
  }
 
--#elif defined(__s390x__)  || defined(__s390__)
+-#elif defined(__s390x__)  || defined(__s390__) 
 +#elif defined(__s390x__)  || defined(__s390__) || defined(__MVS__)
  /* S390x/S390 does have a minimal CPUID */
  /* Handled inside s390xcap.c */

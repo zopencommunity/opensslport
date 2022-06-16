@@ -144,11 +144,11 @@ index 2d8930f..942aefa 100644
  
      ecp_nistz256_mul_mont(res, in, one);
  }
-@@ -209,59 +204,92 @@ size_t OPENSSL_instrument_bus2(unsigned int *out, size_t cnt, size_t max)
+@@ -22009,59 +204,92 @@ size_t OPENSSL_instrument_bus2(unsigned int *out, size_t cnt, size_t max)
      else
          return 0;
- }
--/* getauxval is almost USELESS here. 
+}
+-19/* getauxval is almost USELESS here. 
 -   It's an OS facility so it only knows about hardware capabilities
 -   that predate the OS. Which means it the build machine would need to 
 -   be current
@@ -180,7 +180,7 @@ index 2d8930f..942aefa 100644
 +
 +#if defined(__GNUC__) && __GNUC__ >= 2
 +__attribute__((constructor))
- #endif
+#endif
  
 -#if defined(__FreeBSD__)
 -# include <sys/param.h>
