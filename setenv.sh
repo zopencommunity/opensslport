@@ -23,3 +23,4 @@ if [ "${PORT_TYPE}x" = "TARBALLx" ]; then
 	export PORT_BOOTSTRAP=skip
 fi
 export PORT_CONFIGURE="./Configure"
+export PORT_CONFIGURE_OPTS="OS390-ASCII"
