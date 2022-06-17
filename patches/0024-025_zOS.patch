@@ -4928,7 +4928,7 @@ index 0f04863..80e046e 100644
  
  BEGINRAW[Makefile]
 diff --git a/crypto/bn/asm/s390x-gf2m.pl b/crypto/bn/asm/s390x-gf2m.pl
-index a7e4b8a..5c10c6d 100644
+index ec603c9..deed149 100644
 --- a/crypto/bn/asm/s390x-gf2m.pl
 +++ b/crypto/bn/asm/s390x-gf2m.pl
 @@ -1,5 +1,5 @@
@@ -5298,19 +5298,19 @@ index a7e4b8a..5c10c6d 100644
  if ($SIZE_T==8) {
 -my @r=map("%r$_",(6..9));
 -$code.=<<___;
--	bras	$ra,_mul_1x1			# a1Â·b1
+-	bras	$ra,_mul_1x1			# a1ÃÂ·b1
 -	stmg	$lo,$hi,16($rp)
 -
 -	lg	$a,`$stdframe+128+4*$SIZE_T`($sp)
 -	lg	$b,`$stdframe+128+6*$SIZE_T`($sp)
--	bras	$ra,_mul_1x1			# a0Â·b0
+-	bras	$ra,_mul_1x1			# a0ÃÂ·b0
 -	stmg	$lo,$hi,0($rp)
 -
 -	lg	$a,`$stdframe+128+3*$SIZE_T`($sp)
 -	lg	$b,`$stdframe+128+5*$SIZE_T`($sp)
 -	xg	$a,`$stdframe+128+4*$SIZE_T`($sp)
 -	xg	$b,`$stdframe+128+6*$SIZE_T`($sp)
--	bras	$ra,_mul_1x1			# (a0+a1)Â·(b0+b1)
+-	bras	$ra,_mul_1x1			# (a0+a1)ÃÂ·(b0+b1)
 -	lmg	@r[0],@r[3],0($rp)
 -
 -	xgr	$lo,$hi
@@ -5323,7 +5323,7 @@ index a7e4b8a..5c10c6d 100644
 -	stg	$hi,16($rp)
 -	stg	$lo,8($rp)
 -___
-+	bras	($ra,"_mul_1x1");			# a1Â·b1
++	bras	($ra,"_mul_1x1");			# a1ÃÂ·b1
 +	stmg	($lo,$hi,"16($rp)");
 +
 +	lg		($a,"$stdframe+128+4*$SIZE_T($sp)");
