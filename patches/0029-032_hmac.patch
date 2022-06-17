@@ -1,0 +1,75 @@
+From ebaac0a543a06c0db9f45cd4380e26d18c3ce841 Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:31 -0700
+Subject: [PATCH 29/40] 032_hmac
+
+---
+ crypto/hmac/hmac.c       |  7 +++++++
+ crypto/hmac/hmac_local.h | 11 ++++++++---
+ 2 files changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/crypto/hmac/hmac.c b/crypto/hmac/hmac.c
+index 5e087bf..d488a1a 100644
+--- a/crypto/hmac/hmac.c
++++ b/crypto/hmac/hmac.c
+@@ -157,15 +157,18 @@ void HMAC_CTX_free(HMAC_CTX *ctx)
+ {
+     if (ctx != NULL) {
+         hmac_ctx_cleanup(ctx);
++/*
+         EVP_MD_CTX_free(ctx->i_ctx);
+         EVP_MD_CTX_free(ctx->o_ctx);
+         EVP_MD_CTX_free(ctx->md_ctx);
++*/
+         OPENSSL_free(ctx);
+     }
+ }
+ 
+ static int hmac_ctx_alloc_mds(HMAC_CTX *ctx)
+ {
++/*
+     if (ctx->i_ctx == NULL)
+         ctx->i_ctx = EVP_MD_CTX_new();
+     if (ctx->i_ctx == NULL)
+@@ -178,6 +181,10 @@ static int hmac_ctx_alloc_mds(HMAC_CTX *ctx)
+         ctx->md_ctx = EVP_MD_CTX_new();
+     if (ctx->md_ctx == NULL)
+         return 0;
++*/
++    ctx->i_ctx = &(ctx->i_i_ctx);
++    ctx->o_ctx = &(ctx->i_o_ctx);
++    ctx->md_ctx = &(ctx->i_md_ctx);
+     return 1;
+ }
+ 
+diff --git a/crypto/hmac/hmac_local.h b/crypto/hmac/hmac_local.h
+index 8bcc558..9fb7059 100644
+--- a/crypto/hmac/hmac_local.h
++++ b/crypto/hmac/hmac_local.h
+@@ -9,15 +9,20 @@
+ 
+ #ifndef OSSL_CRYPTO_HMAC_LOCAL_H
+ # define OSSL_CRYPTO_HMAC_LOCAL_H
++#include "../evp/evp_local.h"
+ 
+ /* The current largest case is for SHA3-224 */
+ #define HMAC_MAX_MD_CBLOCK_SIZE     144
+ 
++/* PTW, IBM. Improve perf. on older OS's with poor malloc perf when threaded */
+ struct hmac_ctx_st {
+     const EVP_MD *md;
+-    EVP_MD_CTX *md_ctx;
+-    EVP_MD_CTX *i_ctx;
+-    EVP_MD_CTX *o_ctx;
++    EVP_MD_CTX * md_ctx;
++    EVP_MD_CTX * i_ctx;
++    EVP_MD_CTX * o_ctx;
++    struct evp_md_ctx_st i_md_ctx;
++    struct evp_md_ctx_st i_i_ctx;
++    struct evp_md_ctx_st i_o_ctx;    
+ };
+ 
+ #endif
+-- 
+2.36.1
+

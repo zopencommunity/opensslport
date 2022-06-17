@@ -1,0 +1,59 @@
+From ccb38ee8072c352ebf5a8d5c6f93a2ec2e2ea7df Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:32 -0700
+Subject: [PATCH 35/40] 039_Z_EC_nonce
+
+---
+ crypto/ec/ecp_s390x_nistp.c | 21 +++++++++++++++++----
+ 1 file changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/crypto/ec/ecp_s390x_nistp.c b/crypto/ec/ecp_s390x_nistp.c
+index f395fc7..f84cd1b 100644
+--- a/crypto/ec/ecp_s390x_nistp.c
++++ b/crypto/ec/ecp_s390x_nistp.c
+@@ -130,6 +130,7 @@ static ECDSA_SIG *ecdsa_s390x_nistp_sign_sig(const unsigned char *dgst,
+     const EC_GROUP *group;
+     const BIGNUM *privkey;
+     int off;
++    BN_CTX *ctx = NULL;
+ 
+     group = EC_KEY_get0_group(eckey);
+     privkey = EC_KEY_get0_private_key(eckey);
+@@ -174,10 +175,22 @@ static ECDSA_SIG *ecdsa_s390x_nistp_sign_sig(const unsigned char *dgst,
+          * because kdsa instruction constructs an in-range, invertible nonce
+          * internally implementing counter-measures for RNG weakness.
+          */
+-         if (RAND_priv_bytes(param + S390X_OFF_RN(len), len) != 1) {
+-             ECerr(EC_F_ECDSA_S390X_NISTP_SIGN_SIG,
++         if(!FIPS_mode()) {   
++             if (RAND_priv_bytes(param + S390X_OFF_RN(len), len) != 1) {
++                ECerr(EC_F_ECDSA_S390X_NISTP_SIGN_SIG,
+                    EC_R_RANDOM_NUMBER_GENERATION_FAILED);
+-             goto ret;
++                goto ret;
++             }
++         } else {
++             /* NIST requires a real KA test for EC so we can't use the HW path nonce, generate our own, disable the HW path */
++  	     ctx = BN_CTX_new();
++  	     do {
++  	         BN_generate_dsa_nonce(k, EC_GROUP_get0_order(group), privkey, dgst, dgstlen, ctx);
++             } while(BN_is_zero(k));
++             BN_bn2binpad(k, param + S390X_OFF_RN(len), len);
++             BN_CTX_free(ctx);
++             /* Turn KDSA internal nonce-generation off. */
++             fc |= CS390X_KDSA_D;
+          }
+     } else {
+         /* Reconstruct k = (k^-1)^-1. */
+@@ -186,7 +199,7 @@ static ECDSA_SIG *ecdsa_s390x_nistp_sign_sig(const unsigned char *dgst,
+             ECerr(EC_F_ECDSA_S390X_NISTP_SIGN_SIG, ERR_R_BN_LIB);
+             goto ret;
+         }
+-        /* Turns KDSA internal nonce-generation off. */
++        /* Turn KDSA internal nonce-generation off. */
+         fc |= CS390X_KDSA_D;
+     }
+ 
+-- 
+2.36.1
+

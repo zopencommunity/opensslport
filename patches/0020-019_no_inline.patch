@@ -1,0 +1,31 @@
+From fd81c1172b3bcc70d45d5e08e36738fd5c808c2c Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:29 -0700
+Subject: [PATCH 20/40] 019_no_inline
+
+---
+ crypto/ec/ec_local.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/crypto/ec/ec_local.h b/crypto/ec/ec_local.h
+index d4b9cdf..91da496 100644
+--- a/crypto/ec/ec_local.h
++++ b/crypto/ec/ec_local.h
+@@ -703,6 +703,7 @@ int ec_scalar_mul_ladder(const EC_GROUP *group, EC_POINT *r,
+ 
+ int ec_point_blind_coordinates(const EC_GROUP *group, EC_POINT *p, BN_CTX *ctx);
+ 
++#if !defined(NO_INLINE)
+ static ossl_inline int ec_point_ladder_pre(const EC_GROUP *group,
+                                            EC_POINT *r, EC_POINT *s,
+                                            EC_POINT *p, BN_CTX *ctx)
+@@ -741,5 +742,5 @@ static ossl_inline int ec_point_ladder_post(const EC_GROUP *group,
+ 
+     return 1;
+ }
+-
++#endif
+ #endif
+-- 
+2.36.1
+

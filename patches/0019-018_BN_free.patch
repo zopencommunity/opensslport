@@ -1,0 +1,30 @@
+From 5b494a968fe9f2ab6ecac43b4008a05b4d4d8063 Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:29 -0700
+Subject: [PATCH 19/40] 018_BN_free
+
+---
+ crypto/bn/bn_lib.c | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
+
+diff --git a/crypto/bn/bn_lib.c b/crypto/bn/bn_lib.c
+index eb4a318..e0102d3 100644
+--- a/crypto/bn/bn_lib.c
++++ b/crypto/bn/bn_lib.c
+@@ -223,12 +223,7 @@ void BN_clear_free(BIGNUM *a)
+ 
+ void BN_free(BIGNUM *a)
+ {
+-    if (a == NULL)
+-        return;
+-    if (!BN_get_flags(a, BN_FLG_STATIC_DATA))
+-        bn_free_d(a, 0);
+-    if (a->flags & BN_FLG_MALLOCED)
+-        OPENSSL_free(a);
++    BN_clear_free(a);
+ }
+ 
+ void bn_init(BIGNUM *a)
+-- 
+2.36.1
+

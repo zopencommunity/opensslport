@@ -1,0 +1,26 @@
+From a63ebd8f004e9be17f728756ecfd2420c717ac1c Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:28 -0700
+Subject: [PATCH 07/40] 006_lock_contention
+
+---
+ crypto/bn/bn_blind.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/crypto/bn/bn_blind.c b/crypto/bn/bn_blind.c
+index 76fc7eb..d507652 100644
+--- a/crypto/bn/bn_blind.c
++++ b/crypto/bn/bn_blind.c
+@@ -11,7 +11,8 @@
+ #include "internal/cryptlib.h"
+ #include "bn_local.h"
+ 
+-#define BN_BLINDING_COUNTER     32
++/* Was 32 which is excessive */
++#define BN_BLINDING_COUNTER     1024
+ 
+ struct bn_blinding_st {
+     BIGNUM *A;
+-- 
+2.36.1
+

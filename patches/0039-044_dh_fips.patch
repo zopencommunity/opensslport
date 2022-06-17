@@ -1,0 +1,56 @@
+From ad45e3bad77a8290c338cd4632b523eba43246c6 Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:32 -0700
+Subject: [PATCH 39/40] 044_dh_fips
+
+---
+ crypto/dh/dh_key.c | 31 ++++++++++++++++++++-----------
+ 1 file changed, 20 insertions(+), 11 deletions(-)
+
+diff --git a/crypto/dh/dh_key.c b/crypto/dh/dh_key.c
+index 653100a..723fa91 100644
+--- a/crypto/dh/dh_key.c
++++ b/crypto/dh/dh_key.c
+@@ -178,19 +178,28 @@ static int generate_key(DH *dh)
+         /* We MUST free prk before any further use of priv_key */
+         BN_clear_free(prk);
+     }
+-
++    /* PTW 2022
++        We have products with other formal test compliance requirements
++        that still use non-safe primes. 
++        So make this FIPS only
++        Consumers can still call DH_check()/DH_check_pub_key()
++        themselves if not in FIPS mode.
++        Make unconditional when CVEs appear.
++    */    
+     dh->pub_key = pub_key;
+     dh->priv_key = priv_key;
+-    if( 1 != DH_check_ex(dh) ) {
+-        dh->pub_key = NULL;
+-        dh->priv_key = NULL;
+-        goto err;    
+-    }
+-    if(0 == DH_check_pub_key_ex(dh,dh->pub_key))
+-    {
+-        dh->pub_key = NULL;
+-        dh->priv_key = NULL;
+-        goto err;
++    if(FIPS_mode()) {
++        if( 1 != DH_check_ex(dh) ) {
++            dh->pub_key = NULL;
++            dh->priv_key = NULL;
++            goto err;    
++        }
++        if(0 == DH_check_pub_key_ex(dh,dh->pub_key))
++        {
++            dh->pub_key = NULL;
++            dh->priv_key = NULL;
++            goto err;
++        }
+     }
+     ok = 1;
+  err:
+-- 
+2.36.1
+

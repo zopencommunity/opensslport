@@ -1,0 +1,173 @@
+From 3838cddd603596777afe1a5efc0531a0b60109c5 Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:32 -0700
+Subject: [PATCH 36/40] 041_DH
+
+---
+ crypto/dh/dh_check.c |  1 +
+ crypto/dh/dh_key.c   | 11 ++++++
+ crypto/ec/ec_key.c   | 90 +++++++++++++++++++++++++++++++++++++++++---
+ 3 files changed, 97 insertions(+), 5 deletions(-)
+
+diff --git a/crypto/dh/dh_check.c b/crypto/dh/dh_check.c
+index 4ac169e..b5c1661 100644
+--- a/crypto/dh/dh_check.c
++++ b/crypto/dh/dh_check.c
+@@ -189,6 +189,7 @@ int DH_check_pub_key(const DH *dh, const BIGNUM *pub_key, int *ret)
+         goto err;
+     BN_CTX_start(ctx);
+     tmp = BN_CTX_get(ctx);
++    /* 1 < pub_key <= (p-1)  (equivalent to 2<= pub_key <= p-1) */ 
+     if (tmp == NULL || !BN_set_word(tmp, 1))
+         goto err;
+     if (BN_cmp(pub_key, tmp) <= 0)
+diff --git a/crypto/dh/dh_key.c b/crypto/dh/dh_key.c
+index 117f2fa..653100a 100644
+--- a/crypto/dh/dh_key.c
++++ b/crypto/dh/dh_key.c
+@@ -181,6 +181,17 @@ static int generate_key(DH *dh)
+ 
+     dh->pub_key = pub_key;
+     dh->priv_key = priv_key;
++    if( 1 != DH_check_ex(dh) ) {
++        dh->pub_key = NULL;
++        dh->priv_key = NULL;
++        goto err;    
++    }
++    if(0 == DH_check_pub_key_ex(dh,dh->pub_key))
++    {
++        dh->pub_key = NULL;
++        dh->priv_key = NULL;
++        goto err;
++    }
+     ok = 1;
+  err:
+     if (ok != 1)
+diff --git a/crypto/ec/ec_key.c b/crypto/ec/ec_key.c
+index 23efbd0..4cadd6c 100644
+--- a/crypto/ec/ec_key.c
++++ b/crypto/ec/ec_key.c
+@@ -181,14 +181,26 @@ ENGINE *EC_KEY_get0_engine(const EC_KEY *eckey)
+ 
+ int EC_KEY_generate_key(EC_KEY *eckey)
+ {
++    int rv = -1;
+     if (eckey == NULL || eckey->group == NULL) {
+         ECerr(EC_F_EC_KEY_GENERATE_KEY, ERR_R_PASSED_NULL_PARAMETER);
+-        return 0;
++        rv = 0;
++    } else if (eckey->meth->keygen != NULL)  {
++        rv = eckey->meth->keygen(eckey);
++    } else {
++      ECerr(EC_F_EC_KEY_GENERATE_KEY, EC_R_OPERATION_NOT_SUPPORTED);
++      rv = 0;
++    }
++    if(1 == rv) {
++      rv = EC_KEY_check_key(eckey);
++      if(1 != rv) {
++        EC_POINT_free(eckey->pub_key);
++        eckey->pub_key = NULL;
++        BN_free(eckey->priv_key);
++        eckey->priv_key = NULL;
++      }  
+     }
+-    if (eckey->meth->keygen != NULL)
+-        return eckey->meth->keygen(eckey);
+-    ECerr(EC_F_EC_KEY_GENERATE_KEY, EC_R_OPERATION_NOT_SUPPORTED);
+-    return 0;
++    return rv;
+ }
+ 
+ int ossl_ec_key_gen(EC_KEY *eckey)
+@@ -267,6 +279,65 @@ int EC_KEY_check_key(const EC_KEY *eckey)
+ 
+     return eckey->group->meth->keycheck(eckey);
+ }
++/*
++ * Check the range of the EC public key.
++ * See SP800-56A R3 Section 5.6.2.3.3 (Part 2)
++ * i.e.
++ *  - If q = odd prime p: Verify that xQ and yQ are integers in the
++ *    interval[0, p - 1], OR
++ *  - If q = 2m: Verify that xQ and yQ are bit strings of length m bits.
++ * Returns 1 if the public key has a valid range, otherwise it returns 0.
++ * Note: PTW, derived from OpenSSL 3.0.0x code
++ */
++static int ec_key_public_range_check(BN_CTX *ctx, const EC_KEY *key)
++{
++    int ret = 0;
++    BIGNUM *x, *y;
++    
++    BN_CTX_start(ctx);
++    x = BN_CTX_get(ctx);
++    y = BN_CTX_get(ctx);
++    
++    if (y == NULL)
++        goto err;
++
++    if (!EC_POINT_get_affine_coordinates(key->group, key->pub_key, x, y, ctx))
++        goto err;
++        
++    if (EC_METHOD_get_field_type(EC_GROUP_method_of(key->group)) == NID_X9_62_prime_field) {
++        if (BN_is_negative(x)
++            || BN_cmp(x, key->group->field) >= 0
++            || BN_is_negative(y)
++            || BN_cmp(y, key->group->field) >= 0) {
++            goto err;
++        }
++    } else {
++        int m = EC_GROUP_get_degree(key->group);
++        if (BN_num_bits(x) > m || BN_num_bits(y) > m) {
++            goto err;
++        }
++    }
++    ret = 1;
++err:
++    BN_CTX_end(ctx);
++    return ret;
++}
++
++
++/*
++ * ECC Key validation as specified in SP800-56A R3.
++ * Section 5.6.2.1.2 Owner Assurance of Private-Key Validity
++ * The private key is in the range [1, order-1]
++ * Note: PTW derived from from OpenSSL 3.0.0x code
++ */
++static int ossl_ec_key_private_check(const EC_KEY *eckey)
++{
++    if (BN_cmp(eckey->priv_key, BN_value_one()) < 0
++        || BN_cmp(eckey->priv_key, eckey->group->order) >= 0) {
++        return 0;
++    }
++    return 1;
++}
+ 
+ int ec_key_simple_check_key(const EC_KEY *eckey)
+ {
+@@ -309,6 +380,10 @@ int ec_key_simple_check_key(const EC_KEY *eckey)
+         ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_WRONG_ORDER);
+         goto err;
+     }
++    if(1 != ec_key_public_range_check(ctx,eckey)) {
++        ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, ERR_R_EC_LIB);
++        goto err;
++    }
+     /*
+      * in case the priv_key is present : check if generator * priv_key ==
+      * pub_key
+@@ -327,6 +402,11 @@ int ec_key_simple_check_key(const EC_KEY *eckey)
+             ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_INVALID_PRIVATE_KEY);
+             goto err;
+         }
++        if(1 != ossl_ec_key_private_check(eckey)) {
++            ECerr(EC_F_EC_KEY_SIMPLE_CHECK_KEY, EC_R_INVALID_PRIVATE_KEY);
++            goto err;
++        }
++
+     }
+     ok = 1;
+  err:
+-- 
+2.36.1
+

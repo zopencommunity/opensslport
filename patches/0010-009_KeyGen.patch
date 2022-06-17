@@ -1,0 +1,28 @@
+From 1d304ff78d59ddce7d4355b62ca84fe7aee52955 Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:28 -0700
+Subject: [PATCH 10/40] 009_KeyGen
+
+---
+ crypto/bn/bn_x931p.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/crypto/bn/bn_x931p.c b/crypto/bn/bn_x931p.c
+index 450c42e..5a78554 100644
+--- a/crypto/bn/bn_x931p.c
++++ b/crypto/bn/bn_x931p.c
+@@ -237,9 +237,9 @@ int BN_X931_generate_prime_ex(BIGNUM *p, BIGNUM *p1, BIGNUM *p2,
+       rbits = 141;
+     } 
+ 
+-    if (!BN_priv_rand(Xp1, rbits, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ANY))
++    if (!BN_priv_rand(Xp1, rbits, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ODD))
+         goto error;
+-    if (!BN_priv_rand(Xp2, rbits, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ANY))
++    if (!BN_priv_rand(Xp2, rbits, BN_RAND_TOP_ONE, BN_RAND_BOTTOM_ODD))
+         goto error;
+     if (!BN_X931_derive_prime_ex(p, p1, p2, Xp, Xp1, Xp2, e, ctx, cb))
+         goto error;
+-- 
+2.36.1
+

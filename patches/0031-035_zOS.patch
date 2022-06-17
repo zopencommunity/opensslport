@@ -1,0 +1,31 @@
+From 8d5a67edfa8f6d09bb1f63b337c1d11c5507ad62 Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:31 -0700
+Subject: [PATCH 31/40] 035_zOS
+
+---
+ crypto/bio/b_addr.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/crypto/bio/b_addr.c b/crypto/bio/b_addr.c
+index 0af7a33..c71a7bf 100644
+--- a/crypto/bio/b_addr.c
++++ b/crypto/bio/b_addr.c
+@@ -22,6 +22,14 @@
+ #include <openssl/buffer.h>
+ #include "internal/thread_once.h"
+ 
++#ifndef NI_MAXSERV
++#define NI_MAXSERV 32
++#endif
++
++#ifndef NI_MAXHOST
++#define NI_MAXHOST 1025
++#endif 
++
+ CRYPTO_RWLOCK *bio_lookup_lock;
+ static CRYPTO_ONCE bio_lookup_init = CRYPTO_ONCE_STATIC_INIT;
+ 
+-- 
+2.36.1
+

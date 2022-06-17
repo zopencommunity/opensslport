@@ -1,0 +1,28 @@
+From 61af5492d7520cf8463af918ca90155ba38ebc10 Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:31 -0700
+Subject: [PATCH 30/40] 034_EC_import
+
+---
+ crypto/asn1/d2i_pr.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/crypto/asn1/d2i_pr.c b/crypto/asn1/d2i_pr.c
+index 2094963..274fc0a 100644
+--- a/crypto/asn1/d2i_pr.c
++++ b/crypto/asn1/d2i_pr.c
+@@ -56,8 +56,11 @@ EVP_PKEY *d2i_PrivateKey(int type, EVP_PKEY **a, const unsigned char **pp,
+                 goto err;
+             EVP_PKEY_free(ret);
+             ret = tmp;
++/* PTW. Um, no. Breaks 448/25519 key import.
++   May be a bug with 448/25519 but this is findable
+             if (EVP_PKEY_type(type) != EVP_PKEY_base_id(ret))
+                 goto err;
++*/                
+         } else {
+             ASN1err(ASN1_F_D2I_PRIVATEKEY, ERR_R_ASN1_LIB);
+             goto err;
+-- 
+2.36.1
+
