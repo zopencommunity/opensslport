@@ -23,4 +23,5 @@ if [ "${PORT_TYPE}x" = "TARBALLx" ]; then
 	export PORT_BOOTSTRAP=skip
 fi
 export PORT_CONFIGURE="./Configure"
-export PORT_CONFIGURE_OPTS="OS390-ASCII"
+export PORT_CONFIGURE_OPTS="OS390-ASCII --openssldir=$HOME/zot/prod/ssl"
+export PORT_CHECK_OPTS="test"
