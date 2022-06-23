@@ -1,0 +1,79 @@
+From 4148173cb2f26b88bf56c28d84981f0096aaa8a4 Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:28 -0700
+Subject: [PATCH 05/40] 004_hpux
+
+---
+ Configurations/10-main.conf | 6 +++---
+ crypto/cryptlib.c           | 2 +-
+ crypto/threads_pthread.c    | 8 +++++++-
+ 3 files changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/Configurations/10-main.conf b/Configurations/10-main.conf
+index 8ca8235..2472d10 100644
+--- a/Configurations/10-main.conf
++++ b/Configurations/10-main.conf
+@@ -444,7 +444,7 @@ my %targets = (
+         inherit_from     => [ "BASE_unix" ],
+         template         => 1,
+         defines          => add("_XOPEN_SOURCE", "_XOPEN_SOURCE_EXTENDED",
+-                                "_HPUX_ALT_XOPEN_SOCKET_API"),
++                                ),
+         lib_cppflags     => "-DB_ENDIAN",
+         thread_scheme    => "pthreads",
+         dso_scheme       => "dlfcn",    # overridden in 32-bit PA-RISC builds
+@@ -490,7 +490,7 @@ my %targets = (
+         inherit_from     => [ "hpux-common" ],
+         CC               => "cc",
+         CFLAGS           => picker(debug   => "+O0 +d -g",
+-                                   release => "+O3"),
++                                   release => "+O3 +Osize +Oprocelim"),
+         cflags           => "+Optrs_strongly_typed -Ae +ESlit",
+         cppflags         => threads("-D_REENTRANT"),
+         lib_cppflags     => add("-DBN_DIV2W -DMD32_XARRAY"),
+@@ -510,7 +510,7 @@ my %targets = (
+         inherit_from     => [ "hpux-common", asm("parisc20_64_asm") ],
+         CC               => "cc",
+         CFLAGS           => picker(debug   => "+O0 +d -g",
+-                                   release => "+O3") ,
++                                   release => "+O3 +Osize +Oprocelim") ,
+         cflags           => "+DD64 +Optrs_strongly_typed -Ae +ESlit",
+         cppflags         => threads("-D_REENTRANT") ,
+         lib_cppflags     => add("-DMD32_XARRAY"),
+diff --git a/crypto/cryptlib.c b/crypto/cryptlib.c
+index 31da04a..0ce8038 100644
+--- a/crypto/cryptlib.c
++++ b/crypto/cryptlib.c
+@@ -596,7 +596,7 @@ int OPENSSL_HW_rand(unsigned char *buf)
+ 
+ #if  defined( __SunOS ) && defined( __i386 ) && !defined( __amd64 )
+ unsigned long OPENSSL_rdtscX() { return 0L; }
+-#elif defined(__aarch64__)
++#elif defined(__aarch64__) || defined(__hpux)
+ unsigned long OPENSSL_rdtscX() { return 0L; }
+ #else
+ unsigned long OPENSSL_rdtscX() 
+diff --git a/crypto/threads_pthread.c b/crypto/threads_pthread.c
+index 1774a2b..ae39e23 100644
+--- a/crypto/threads_pthread.c
++++ b/crypto/threads_pthread.c
+@@ -115,9 +115,15 @@ void CRYPTO_THREAD_lock_free(CRYPTO_RWLOCK *lock)
+ 
+ int CRYPTO_THREAD_run_once(CRYPTO_ONCE *once, void (*init)(void))
+ {
++#if !defined(__hpux) && !defined(__ILP64__)
+     if (pthread_once(once, init) != 0)
+         return 0;
+-
++#else
++    if(0 == *(int *)once) {
++        *(int *)once = 1;
++        init();
++    }
++#endif
+     return 1;
+ }
+ 
+-- 
+2.36.1
+

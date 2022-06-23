@@ -1,0 +1,98 @@
+From 1558958423e2caae907f1328e1706dccd4cff0cc Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:31 -0700
+Subject: [PATCH 33/40] 037_Power10
+
+---
+ crypto/ppc_arch.h |  3 +++
+ crypto/ppccap.c   | 27 +++++++++++++++++++++------
+ 2 files changed, 24 insertions(+), 6 deletions(-)
+
+diff --git a/crypto/ppc_arch.h b/crypto/ppc_arch.h
+index 39d8e61..60385f6 100644
+--- a/crypto/ppc_arch.h
++++ b/crypto/ppc_arch.h
+@@ -99,6 +99,9 @@ extern unsigned int OPENSSL_ppccap_P;
+ #ifndef POWER_9
+ #  define POWER_9 0x20000 /* 9 class CPU */
+ #endif 
++#ifndef POWER_10
++#  define POWER_10 0x40000 /* 9 class CPU */
++#endif 
+ 
+ 
+ extern unsigned long query_auxv(unsigned int type);
+diff --git a/crypto/ppccap.c b/crypto/ppccap.c
+index 942aefa..091ad19 100644
+--- a/crypto/ppccap.c
++++ b/crypto/ppccap.c
+@@ -248,7 +248,14 @@ __attribute__((constructor))
+ #define POWER_9 0x20000 /* 9 class CPU */
+ #endif
+ #ifndef POWER_10
+-#define POWER_10 0x40000 /* 9 class CPU */
++#define POWER_10 0x40000 /* 10 class CPU */
++#endif
++/* Just guesses from here on, not even IBM knows */ 
++#ifndef POWER_11
++#define POWER_11 0x80000 /* 11 class CPU */
++#endif
++#ifndef POWER_12
++#define POWER_12 0x100000 /* 12 class CPU */
+ #endif
+ 
+ /* This is a fake to make this look like the Linux auxv
+@@ -278,6 +285,14 @@ query_auxv(unsigned int type)
+     {
+         cap |= POWER_10;
+     }
++    if (__power_set(POWER_11))
++    {
++        cap |= POWER_11;
++    }
++    if (__power_set(POWER_12))
++    {
++        cap |= POWER_12;
++    }
+     return cap;
+ }
+ 
+@@ -457,7 +472,7 @@ void OPENSSL_cpuid_setup()
+     */
+         mask = PPC_FPU | PPC_FPU64;
+         hwcap = (unsigned long)query_auxv(0);
+-        if (hwcap &  (POWER_6 | POWER_7 | POWER_8 | POWER_9 | POWER_10))
++        if (hwcap &  (POWER_6 | POWER_7 | POWER_8 | POWER_9 | POWER_10| POWER_11 | POWER_12))
+         {
+             mask |= PPC_ALTIVEC;
+         }
+@@ -465,22 +480,22 @@ void OPENSSL_cpuid_setup()
+         P5,P7 and above using the FPU paths 
+         cuts RSA perf in half
+         */
+-        if (hwcap & (POWER_5 | POWER_7 | POWER_8 | POWER_9 | POWER_10))
++        if (hwcap & (POWER_5 | POWER_7 | POWER_8 | POWER_9 | POWER_10| POWER_11 | POWER_12))
+         {
+             mask &= (~PPC_FPU64);
+         }
+-        if (hwcap & (POWER_8 | POWER_9 | POWER_10))
++        if (hwcap & (POWER_8 | POWER_9 | POWER_10| POWER_11 | POWER_12))
+         {
+             mask = PPC_CRYPTO207 ;
+         }
+         if(hwcap & POWER_9) {
+             mask |= PPC_MADD300;
+         }
+-        if (hwcap & (POWER_7 | POWER_8 | POWER_9 | POWER_10))
++        if (hwcap & (POWER_7 | POWER_8 | POWER_9 | POWER_10| POWER_11 | POWER_12))
+         {
+             mask |= PPC_MFTB;
+         }
+-        if (hwcap & (POWER_6 | POWER_7 | POWER_8 | POWER_9 | POWER_10))
++        if (hwcap & (POWER_6 | POWER_7 | POWER_8 | POWER_9 | POWER_10| POWER_11 | POWER_12))
+         {
+             mask |= PPC_MFSPR268;
+         }
+-- 
+2.36.1
+

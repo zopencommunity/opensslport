@@ -1,0 +1,28 @@
+From 9ac2b2a5d3f0561f0fe6db386ae661a87b1ce161 Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:28 -0700
+Subject: [PATCH 09/40] 008_BN_stack_pop
+
+---
+ crypto/bn/bn_ctx.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/crypto/bn/bn_ctx.c b/crypto/bn/bn_ctx.c
+index 042cb24..b6a3611 100644
+--- a/crypto/bn/bn_ctx.c
++++ b/crypto/bn/bn_ctx.c
+@@ -277,7 +277,10 @@ static int BN_STACK_push(BN_STACK *st, unsigned int idx)
+ 
+ static unsigned int BN_STACK_pop(BN_STACK *st)
+ {
+-    return st->indexes[--(st->depth)];
++    if(st->depth) {
++        return st->indexes[--(st->depth)];
++    }
++    return 0;
+ }
+ 
+ /***********/
+-- 
+2.36.1
+

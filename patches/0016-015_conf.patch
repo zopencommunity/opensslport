@@ -1,0 +1,24 @@
+From 57c9b40ec74ab299df7b9363ca856a3aac2e203b Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:29 -0700
+Subject: [PATCH 16/40] 015_conf
+
+---
+ crypto/conf/conf_mall.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/crypto/conf/conf_mall.c b/crypto/conf/conf_mall.c
+index d7eaa85..61a21ee 100644
+--- a/crypto/conf/conf_mall.c
++++ b/crypto/conf/conf_mall.c
+@@ -27,5 +27,7 @@ void OPENSSL_load_builtin_modules(void)
+     ENGINE_add_conf_module();
+ #endif
+     EVP_add_alg_module();
++#if 0
+     conf_add_ssl_module();
++#endif
+ }
+-- 
+2.36.1
+

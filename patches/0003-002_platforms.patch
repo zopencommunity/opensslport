@@ -1,0 +1,141 @@
+From 6d9405d6376a525ad0b7dc23aaf25c5904ac0cde Mon Sep 17 00:00:00 2001
+From: Mike Fulton <mikefultonpersonal@gmail.com>
+Date: Fri, 17 Jun 2022 11:09:28 -0700
+Subject: [PATCH 03/40] 002_platforms
+
+---
+ crypto/cryptlib.c       |  2 +-
+ crypto/ppc_arch.h       |  4 +--
+ crypto/ppccap.c         | 74 +++++++++++++++++++++++++++++++++++++++++
+ include/openssl/e_os2.h |  1 +
+ 4 files changed, 78 insertions(+), 3 deletions(-)
+
+diff --git a/crypto/cryptlib.c b/crypto/cryptlib.c
+index bbb2159..31da04a 100644
+--- a/crypto/cryptlib.c
++++ b/crypto/cryptlib.c
+@@ -520,7 +520,7 @@ int OPENSSL_cpuid(long long *id)
+ /* S390x/S390 does have a minimal CPUID */
+ /* Handled inside s390xcap.c */
+ 
+-#elif ( defined(OPENSSL_SYSNAME_ULTRASPARC) )
++#elif ( defined(__sparc) )
+ /* Handled inside sparcv9cap.c */
+ #elif defined(__ppc__) || defined(__powerpc__) || defined(_AIX)
+ /* Handled inside ppccap.c */
+diff --git a/crypto/ppc_arch.h b/crypto/ppc_arch.h
+index 41dd8dd..a49d23a 100644
+--- a/crypto/ppc_arch.h
++++ b/crypto/ppc_arch.h
+@@ -101,12 +101,12 @@ extern unsigned int OPENSSL_ppccap_P;
+ 
+ extern unsigned long query_auxv(unsigned int type);
+ 
+-#endif
++#endif /*_AIX */
+ 
+ #if defined(__linux)
+ #include <endian.h>
+ #include "auxv.h"
+-#endif
++#endif /* __linux */
+ 
+ /*
+  * Flags' usage can appear ambiguous, because they are set rather
+diff --git a/crypto/ppccap.c b/crypto/ppccap.c
+index eeaa47c..9d69a46 100644
+--- a/crypto/ppccap.c
++++ b/crypto/ppccap.c
+@@ -431,3 +431,77 @@ void OPENSSL_cpuid_setup(void)
+     sigaction(SIGILL, &ill_oact, NULL);
+     sigprocmask(SIG_SETMASK, &oset, NULL);
+ }
++
++/* Bits you can turn OFF */
++#define PPC_ALLOWED_MASK_BITS (PPC_CRYPTO207 | PPC_ALTIVEC | PPC_FPU64)
++/* Bits you can turn ON */
++#define PPC_PERMITTED_MASK_BITS (PPC_CRYPTO207 | PPC_ALTIVEC | PPC_FPU64)
++
++/* This is the default path, but with ICC we allow 
++   override via ICC_CAP_MASK
++   What gets set in the mask for ICC is the features we'll
++   enable NOT the features available.
++   Using the FPU is a win on P6, but halves RSA perf on P7/P8
++   so it's not enabled by default on variants with the 2.06 ISA
++   flagged.
++*/
++int OPENSSL_cpuid(long long *id);
++
++int OPENSSL_cpuid_override(long long mask) 
++{
++  union {
++    long long cap;
++    unsigned int icap[4];
++  } u;
++  unsigned long long tmask;
++  int retest = 1;
++
++  u.cap = 0;
++  tmask = mask;
++
++  OPENSSL_cpuid(&u.cap);
++  if(tmask & PPC_PERMITTED_MASK_BITS) {
++    tmask &= PPC_PERMITTED_MASK_BITS;
++    u.cap |= tmask;
++  }
++  tmask = mask | (~PPC_ALLOWED_MASK_BITS);
++  u.cap &= tmask;
++
++
++#if (__BYTE_ORDER == __LITTLE_ENDIAN)
++  OPENSSL_ppccap_P = u.icap[0];
++#else
++  OPENSSL_ppccap_P = u.icap[3];
++#endif   
++  if(retest) {
++    /* And probe if we turned stuff on, to ensure we don't have accidents 
++       if the function is really there, no SIGILL, no problem
++       if it wasn't , at least we TRY to catch the SIGILL here, we
++       won't later
++     */
++    OPENSSL_cpuid_setup();
++  }
++  return 1;
++}
++
++int OPENSSL_cpuid(long long *id)
++{
++  union {
++    unsigned long long cap;
++    unsigned int icap[3];
++  } u;
++  unsigned long long cap = 0;
++  OPENSSL_cpuid_setup();
++#if (__BYTE_ORDER == __LITTLE_ENDIAN)
++  u.icap[0] = OPENSSL_ppccap_P;
++  u.icap[1] = u.icap[2] = u.icap[3] = 0;
++#else
++  u.icap[0] = u.icap[1] = u.icap[2] = 0;
++  u.icap[3] = OPENSSL_ppccap_P;
++#endif  
++  cap = OPENSSL_ppccap_P;
++
++  /* fprintf(stderr,"cpuid %08lx %08lx %08lx %016llx\n",OPENSSL_ppccap_P,u.icap[0],u.icap[3],cap);  */
++  *id = cap;
++  return 1;
++}
+diff --git a/include/openssl/e_os2.h b/include/openssl/e_os2.h
+index 5c88e51..022e22b 100644
+--- a/include/openssl/e_os2.h
++++ b/include/openssl/e_os2.h
+@@ -239,6 +239,7 @@ typedef INT64 int64_t;
+ typedef UINT64 uint64_t;
+ # elif (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || \
+      defined(__osf__) || defined(__sgi) || defined(__hpux) || \
++     defined(__sparc) || \
+      defined(OPENSSL_SYS_VMS) || defined (__OpenBSD__)
+ #  include <inttypes.h>
+ # elif defined(_MSC_VER) && _MSC_VER<1600
+-- 
+2.36.1
+
