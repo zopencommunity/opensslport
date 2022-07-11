@@ -8,5 +8,6 @@ if ! [ -f ./.env ]; then
 fi
 mydir="\${PWD}"
 export PATH="\${mydir}/bin:\$PATH"
+export OPENSSL_HOME="$1"
 zz
 exit 0
