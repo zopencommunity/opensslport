@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# Set up environment variables for general build tool to operate
+#
+if ! [ -f ./buildenv ]; then
+	echo "Need to source from the buildenv directory" >&2
+	return 0
+fi
+
+export ZOPEN_ROOT="${PWD}"
+export ZOPEN_TYPE="TARBALL"
+
+export ZOPEN_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1o.tar.gz"
+export ZOPEN_TARBALL_DEPS="curl git gzip make m4 perl"
+
+export ZOPEN_GIT_URL="https://github.com/openssl/openssl"
+export ZOPEN_GIT_DEPS="git make m4 perl autoconf automake help2man makeinfo xz"
+
+export ZOPEN_EXTRA_CFLAGS=""
+export ZOPEN_EXTRA_LDFLAGS=""
+
+if [ "${ZOPEN_TYPE}x" = "TARBALLx" ]; then
+	export ZOPEN_BOOTSTRAP=skip
+fi
+export ZOPEN_CONFIGURE="./Configure"
+export ZOPEN_CONFIGURE_OPTS="OS390-ASCII --prefix=$HOME/zot/prod/openssl-1.1.1o --openssldir=$HOME/zot/prod/ssl"
+export ZOPEN_CHECK_OPTS="test"
