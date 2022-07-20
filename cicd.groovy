@@ -10,6 +10,6 @@ node('linux')
         }
 
         stage('Build') {
-                build job: 'Port-Pipeline', parameters: [string(name: 'PORT_GITHUB_REPO', value: 'opensslport'), string(name: 'PORT_DESCRIPTION', value: 'OpenSSL is a software library for applications that secure communications over computer networks against eavesdropping or need to identify the party at the other end.' )]
+                build job: 'Port-Pipeline', parameters: [string(name: 'PORT_GITHUB_REPO', value: 'https://github.com/ZOSOpenTools/opensslport.git'), string(name: 'PORT_DESCRIPTION', value: 'OpenSSL is a software library for applications that secure communications over computer networks against eavesdropping or need to identify the party at the other end.' )]
         }
 }
