@@ -26,5 +26,5 @@ if [ "${ZOPEN_TYPE}x" = "TARBALLx" ]; then
 	export ZOPEN_BOOTSTRAP=skip
 fi
 export ZOPEN_CONFIGURE="./Configure"
-export ZOPEN_CONFIGURE_OPTS="OS390-ASCII --prefix=$HOME/zopen/prod/openssl-1.1.1o --openssldir=$HOME/zopen/prod/ssl"
+export ZOPEN_EXTRA_CONFIGURE_OPTS="OS390-ASCII --openssldir=$HOME/zopen/prod/ssl"
 export ZOPEN_CHECK_OPTS="test"
