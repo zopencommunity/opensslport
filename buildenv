@@ -21,3 +21,9 @@ fi
 export ZOPEN_CONFIGURE="./Configure"
 export ZOPEN_EXTRA_CONFIGURE_OPTS="OS390-ASCII --openssldir=$HOME/zopen/prod/ssl"
 export ZOPEN_CHECK_OPTS="test"
+
+zopen_check_results()
+{
+return 3 # Non-functional
+}
+
