@@ -10,7 +10,7 @@ export ZOPEN_TARBALL_DEPS="curl git gzip make m4 perl"
 export ZOPEN_GIT_URL="https://github.com/openssl/openssl"
 export ZOPEN_GIT_DEPS="git make m4 perl autoconf automake help2man makeinfo xz"
 
-export CFLAGS="-qascii -qnocsect -Wa,'SECTALGN(256)'"
+export CFLAGS="-qascii -qenum=int -qnocsect -Wa,'SECTALGN(256)'"
 export CC="xlclang"
 export ZOPEN_EXTRA_LDFLAGS=""
 
@@ -31,6 +31,6 @@ failures="$((totalTests-successes))"
 cat <<ZZ
 actualFailures:$failures
 totalTests:$totalTests
-expectedFailures:16
+expectedFailures:17
 ZZ
 }
