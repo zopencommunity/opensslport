@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 # Set up environment variables for general build tool to operate
 #
@@ -23,7 +22,7 @@ export ZOPEN_CHECK_OPTS="test"
 
 zopen_check_results()
 {
-chk="$2_check.log"
+chk="$1/$2_check.log"
 
 successes=$(grep -E " ok$" ${chk} | wc -l)
 totalTests=$(grep -E "^Failed | ok$" ${chk} | wc -l)
