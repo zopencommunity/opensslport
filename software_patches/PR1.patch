@@ -1,0 +1,16 @@
+diff --git a/Configurations/10-main.conf b/Configurations/10-main.conf
+index f815a09..27521bf 100644
+--- a/Configurations/10-main.conf
++++ b/Configurations/10-main.conf
+@@ -1790,6 +1790,11 @@ my %targets = (
+         apps_init_src    => "vms_decc_init.c",
+     },
+ 
++    "OS390-ASCII" => {
++       inherit_from     => [ "BASE_unix" ],
++       thread_scheme    => "pthreads"
++    },
++
+     # From HELP CC/POINTER_SIZE:
+     #
+     # ----------
