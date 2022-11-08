@@ -4,10 +4,12 @@
 export ZOPEN_TYPE="TARBALL"
 
 if [ ! -z "$OPENSSL_HW_BUILD" ]; then
+  printHeader "Building HW accelerated openssl"
   export ZOPEN_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1o.tar.gz"
   export ZOPEN_TARBALL_DEPS="curl git gzip make m4 perl tar"
   ln -s hardware_patches patches
 else
+  printHeader "Building SW openssl"
   export ZOPEN_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1s.tar.gz"
   export ZOPEN_TARBALL_DEPS="curl git gzip make m4 perl tar zoslib"
   rm -f patches
@@ -40,12 +42,13 @@ if [ ! -z "$OPENSSL_HW_BUILD" ]; then
   actualFailures:$failures
   totalTests:$totalTests
   expectedFailures:17
-  ZZ
+ZZ
 else
   cat <<ZZ
   actualFailures:$failures
   totalTests:$totalTests
   expectedFailures:5
-  ZZ
+ZZ
 fi
+
 }
