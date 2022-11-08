@@ -3,22 +3,29 @@
 #
 export ZOPEN_TYPE="TARBALL"
 
-export ZOPEN_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1o.tar.gz"
-export ZOPEN_TARBALL_DEPS="curl git gzip make m4 perl"
+if [ ! -z "$OPENSSL_HW_BUILD" ]; then
+  export ZOPEN_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1o.tar.gz"
+  export ZOPEN_TARBALL_DEPS="curl git gzip make m4 perl tar"
+  ln -s hardware_patches patches
+else
+  export ZOPEN_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1s.tar.gz"
+  export ZOPEN_TARBALL_DEPS="curl git gzip make m4 perl tar zoslib"
+  rm -f patches
+  ln -s software_patches patches
+fi
 
 export ZOPEN_GIT_URL="https://github.com/openssl/openssl"
 export ZOPEN_GIT_DEPS="git make m4 perl autoconf automake help2man makeinfo xz"
-
-export CFLAGS="-qascii -qenum=int -qnocsect -Wa,'SECTALGN(256)'"
-export CC="xlclang"
-export ZOPEN_EXTRA_LDFLAGS=""
 
 if [ "${ZOPEN_TYPE}x" = "TARBALLx" ]; then
 	export ZOPEN_BOOTSTRAP=skip
 fi
 export ZOPEN_CONFIGURE="./Configure"
-export ZOPEN_EXTRA_CONFIGURE_OPTS="OS390-ASCII --openssldir=$HOME/zopen/prod/ssl"
+export ZOPEN_EXTRA_CONFIGURE_OPTS="OS390-ASCII"
 export ZOPEN_CHECK_OPTS="test"
+export ZOPEN_EXTRA_CFLAGS="${ZOPEN_EXTRA_CFLAGS} -std=gnu99"
+export ZOPEN_EXTRA_CPPFLAGS="${ZOPEN_EXTRA_CPPFLAGS} -DNI_MAXSERV=32 -DNI_MAXHOST=1025"
+export LDLIBS="${ZOPEN_EXTRA_LIBS}"
 
 zopen_check_results()
 {
@@ -27,9 +34,18 @@ chk="$1/$2_check.log"
 successes=$(grep -E " ok$" ${chk} | wc -l)
 totalTests=$(grep -E "^Failed | ok$" ${chk} | wc -l)
 failures="$((totalTests-successes))"
-cat <<ZZ
-actualFailures:$failures
-totalTests:$totalTests
-expectedFailures:17
-ZZ
+
+if [ ! -z "$OPENSSL_HW_BUILD" ]; then
+  cat <<ZZ
+  actualFailures:$failures
+  totalTests:$totalTests
+  expectedFailures:17
+  ZZ
+else
+  cat <<ZZ
+  actualFailures:$failures
+  totalTests:$totalTests
+  expectedFailures:5
+  ZZ
+fi
 }
