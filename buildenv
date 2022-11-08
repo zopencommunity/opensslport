@@ -47,7 +47,7 @@ else
   cat <<ZZ
   actualFailures:$failures
   totalTests:$totalTests
-  expectedFailures:5
+  expectedFailures:12
 ZZ
 fi
 
