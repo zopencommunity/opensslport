@@ -38,8 +38,12 @@ if [ ! -z "\$ZOPEN_IN_ZOPEN_BUILD" ]; then
   export ZOPEN_EXTRA_LDFLAGS="\${ZOPEN_EXTRA_LDFLAGS} -L\$PWD/lib"
   export ZOPEN_EXTRA_LIBS="\${ZOPEN_EXTRA_LIBS} -lcrypto -lssl"
 
+  #
+  # These are required for wget
+  #
   export OPENSSL_CFLAGS="-I\$PWD/include"
   export OPENSSL_LDFLAGS="-L\$PWD/lib"
+  export OPENSSL_LIBS="-lcrypto -lssl"
 fi
 ZZ
 }
