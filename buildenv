@@ -29,6 +29,21 @@ export ZOPEN_EXTRA_CFLAGS="${ZOPEN_EXTRA_CFLAGS} -std=gnu99"
 export ZOPEN_EXTRA_CPPFLAGS="${ZOPEN_EXTRA_CPPFLAGS} -DNI_MAXSERV=32 -DNI_MAXHOST=1025"
 export LDLIBS="${ZOPEN_EXTRA_LIBS}"
 
+zopen_append_to_env()
+{
+cat <<ZZ
+if [ ! -z "\$ZOPEN_IN_ZOPEN_BUILD" ]; then
+  export ZOPEN_EXTRA_CFLAGS="\${ZOPEN_EXTRA_CFLAGS} -I\$PWD/include"
+  export ZOPEN_EXTRA_CXXFLAGS="\${ZOPEN_EXTRA_CXXFLAGS} -I\$PWD/include"
+  export ZOPEN_EXTRA_LDFLAGS="\${ZOPEN_EXTRA_LDFLAGS} -L\$PWD/lib"
+  export ZOPEN_EXTRA_LIBS="\${ZOPEN_EXTRA_LIBS} -lcrypto -lssl"
+
+  export OPENSSL_CFLAGS="-I\$PWD/include"
+  export OPENSSL_LDFLAGS="-L\$PWD/lib"
+fi
+ZZ
+}
+
 zopen_check_results()
 {
 chk="$1/$2_check.log"
