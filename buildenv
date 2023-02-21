@@ -17,7 +17,7 @@ else
 fi
 
 export ZOPEN_GIT_URL="https://github.com/openssl/openssl"
-export ZOPEN_GIT_DEPS="git make m4 perl autoconf automake help2man makeinfo xz"
+export ZOPEN_GIT_DEPS="git make m4 perl autoconf automake help2man texinfo xz"
 
 if [ "${ZOPEN_TYPE}x" = "TARBALLx" ]; then
 	export ZOPEN_BOOTSTRAP=skip
