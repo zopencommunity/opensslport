@@ -3,6 +3,7 @@
 #
 export ZOPEN_TYPE="TARBALL"
 
+rm -f patches
 if [ ! -z "$OPENSSL_HW_BUILD" ]; then
   printHeader "Building HW accelerated openssl"
   export ZOPEN_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1o.tar.gz"
@@ -11,13 +12,15 @@ if [ ! -z "$OPENSSL_HW_BUILD" ]; then
 else
   printHeader "Building SW openssl"
   export ZOPEN_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1t.tar.gz"
-  export ZOPEN_TARBALL_DEPS="curl git gzip make m4 perl tar zoslib"
-  rm -f patches
-  ln -s software_patches patches
+  export ZOPEN_GIT_URL="https://github.com/openssl/openssl.git"
+  export ZOPEN_DEPS="curl git gzip make m4 perl tar zoslib"
+  export ZOPEN_GIT_TAG="openssl-3.1.1"
+  if [ "${ZOPEN_TYPE}x" = "TARBALLx" ]; then
+    ln -s software_patches patches
+  else
+    ln -s git_software_patches patches
+  fi
 fi
-
-export ZOPEN_GIT_URL="https://github.com/openssl/openssl"
-export ZOPEN_GIT_DEPS="git make m4 perl autoconf automake help2man texinfo xz"
 
 if [ "${ZOPEN_TYPE}x" = "TARBALLx" ]; then
 	export ZOPEN_BOOTSTRAP=skip

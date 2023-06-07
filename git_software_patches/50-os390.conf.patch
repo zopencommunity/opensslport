@@ -1,0 +1,15 @@
+diff --git a/Configurations/50-os390.conf b/Configurations/50-os390.conf
+index 6e86cb64fe..9b5e6237d6 100644
+--- a/Configurations/50-os390.conf
++++ b/Configurations/50-os390.conf
+@@ -7,5 +7,9 @@
+         cflags           => "-O -DB_ENDIAN -DCHARSET_EBCDIC",
+         bn_ops           => "THIRTY_TWO_BIT RC4_CHAR",
+         thread_scheme    => "(unknown)",
+-    }
++    },
++    "OS390-ASCII" => {
++       inherit_from     => [ "BASE_unix" ],
++       thread_scheme    => "pthreads"
++    },
+ );
