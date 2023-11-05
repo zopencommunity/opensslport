@@ -1,15 +1,20 @@
+# bump: openssl-3-version /OPENSSL_3_VERSION="(.*)"/ https://www.openssl.org/source/|re:/openssl-([\d.]+).tar.gz/$1/|semver:*
+OPENSSL_3_VERSION="3.1.2"
+
+
 if [ ! -z "$OPENSSL_HW_BUILD" ]; then
   rm -f patches
-  export ZOPEN_TYPE="TARBALL"
+  export ZOPEN_BUILD_LINE="STABLE"
   printHeader "Building HW accelerated openssl"
-  export ZOPEN_TARBALL_URL="https://www.openssl.org/source/openssl-1.1.1o.tar.gz"
-  export ZOPEN_TARBALL_DEPS="curl git gzip make m4 perl tar"
+  export ZOPEN_STABLE_URL="https://www.openssl.org/source/openssl-${OPENSSL_3_VERSION}.tar.gz"
+  export ZOPEN_STABLE_DEPS="curl git gzip make m4 perl tar"
   ln -s hardware_patches patches
 else
   printHeader "Building SW openssl"
   export ZOPEN_BUILD_LINE="STABLE"
   export ZOPEN_STABLE_URL="https://github.com/openssl/openssl.git"
-  export ZOPEN_STABLE_TAG="openssl-3.1.2"
+  export ZOPEN_STABLE_URL="https://www.openssl.org/source/openssl-${OPENSSL_3_VERSION}.tar.gz"
+  export ZOPEN_STABLE_TAG="openssl-${OPENSSL_3_VERSION}"
   export ZOPEN_STABLE_DEPS="curl git gzip make m4 perl tar zoslib"
 
   export ZOPEN_DEV_URL="https://github.com/openssl/openssl.git"
@@ -64,5 +69,10 @@ else
   expectedFailures:12
 ZZ
 fi
-
 }
+
+zopen_get_version()
+{
+  echo "$OPENSSL_3_VERSION"
+}
+
