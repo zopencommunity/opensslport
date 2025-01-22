@@ -71,6 +71,12 @@ ZZ
 fi
 }
 
+zopen_append_to_zoslib_env() {
+cat <<EOF
+OPENSSL_CONF|set|PROJECT_ROOT/ssl/openssl.cnf
+EOF
+}
+
 zopen_get_version()
 {
   echo "$OPENSSL_3_VERSION"
