@@ -49,6 +49,11 @@ fi
 ZZ
 }
 
+zopen_init()
+{
+  env
+}
+
 zopen_check_results()
 {
 chk="$1/$2_check.log"
