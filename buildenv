@@ -51,6 +51,7 @@ ZZ
 
 zopen_init()
 {
+  export _EDC_ADD_ERRNO2=1
   env
 }
 
