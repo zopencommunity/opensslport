@@ -49,6 +49,12 @@ fi
 ZZ
 }
 
+zopen_init()
+{
+  export _EDC_ADD_ERRNO2=1
+  env
+}
+
 zopen_check_results()
 {
 chk="$1/$2_check.log"
