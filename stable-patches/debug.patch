@@ -1,8 +1,21 @@
 diff --git a/crypto/ui/ui_openssl.c b/crypto/ui/ui_openssl.c
-index 544415e..d71487c 100644
+index 544415e..ab73537 100644
 --- a/crypto/ui/ui_openssl.c
 +++ b/crypto/ui/ui_openssl.c
-@@ -457,7 +457,7 @@ static int open_console(UI *ui)
+@@ -103,6 +103,12 @@
+ #  undef SGTTY
+ # endif
+ 
++# if defined(__MVS__)
++#  define TERMIOS
++#  undef TERMIO
++#  undef SGTTY
++# endif
++
+ # ifdef TERMIOS
+ #  include <termios.h>
+ #  define TTY_STRUCT             struct termios
+@@ -457,7 +463,7 @@ static int open_console(UI *ui)
  #  endif
              {
                  ERR_raise_data(ERR_LIB_UI, UI_R_UNKNOWN_TTYGET_ERRNO_VALUE,
