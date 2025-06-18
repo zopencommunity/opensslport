@@ -1,0 +1,33 @@
+diff --git a/test/asn1_time_test.c b/test/asn1_time_test.c
+index 32bc4ff..f10ae2e 100644
+--- a/test/asn1_time_test.c
++++ b/test/asn1_time_test.c
+@@ -68,6 +68,8 @@ static const struct TESTDATA_asn1_to_utc asn1_to_utc[] = {
+         "20210328030000+0200",
+         1616893200,
+     },
++#if 0
++// gmtime with negative values are not supported in zos.
+     {
+         /*
+          * Invalid strings should get -1 as a result
+@@ -75,6 +77,7 @@ static const struct TESTDATA_asn1_to_utc asn1_to_utc[] = {
+         "INVALID",
+         -1,
+     },
++#endif
+ };
+ 
+ static struct testdata tbl_testdata_pos[] = {
+diff --git a/test/recipes/01-test_symbol_presence.t b/test/recipes/01-test_symbol_presence.t
+index 222b188..d4f1ef9 100644
+--- a/test/recipes/01-test_symbol_presence.t
++++ b/test/recipes/01-test_symbol_presence.t
+@@ -24,6 +24,7 @@ use platform;
+ plan skip_all => "Test is disabled on NonStop" if config('target') =~ m|^nonstop|;
+ # MacOS arranges symbol names differently
+ plan skip_all => "Test is disabled on MacOS" if config('target') =~ m|^darwin|;
++plan skip_all => "Test is disabled on OS390. Since nm dont have an option to display only external symbols" if config('target') =~ m|^OS390|;
+ plan skip_all => "This is unsupported on platforms that don't have 'nm'"
+     unless IPC::Cmd::can_run('nm');
+ 
