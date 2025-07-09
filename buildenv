@@ -1,5 +1,5 @@
 # bump: openssl-3-version /OPENSSL_3_VERSION="(.*)"/ https://www.openssl.org/source/|re:/openssl-([\d.]+).tar.gz/$1/|semver:*
-OPENSSL_3_VERSION="3.5.0"
+OPENSSL_3_VERSION="3.5.1"
 
 
 if [ ! -z "$OPENSSL_HW_BUILD" ]; then
@@ -23,7 +23,7 @@ fi
 
 export ZOPEN_CONFIGURE="./Configure"
 export ZOPEN_EXTRA_CONFIGURE_OPTS="OS390-ASCII"
-export ZOPEN_CHECK_OPTS="test"
+export ZOPEN_CHECK_OPTS="HARNESS_JOBS=\$ZOPEN_NUM_JOBS test"
 export ZOPEN_EXTRA_CFLAGS="${ZOPEN_EXTRA_CFLAGS} -std=gnu99 -mzos-target=zosv2r5 -march=z13"
 export ZOPEN_SYSTEM_PREREQS="zos25"
 export ZOPEN_EXTRA_CPPFLAGS="${ZOPEN_EXTRA_CPPFLAGS} -DNI_MAXSERV=32 -DNI_MAXHOST=1025"
