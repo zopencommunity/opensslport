@@ -23,7 +23,9 @@ fi
 
 export ZOPEN_CONFIGURE="./Configure"
 export ZOPEN_EXTRA_CONFIGURE_OPTS="OS390-ASCII"
+export ZOPEN_CHECK="zopen_check"
 export ZOPEN_CHECK_OPTS="HARNESS_JOBS=\$ZOPEN_NUM_JOBS test"
+export ZOPEN_CHECK_MINIMAL="y"
 export ZOPEN_EXTRA_CFLAGS="${ZOPEN_EXTRA_CFLAGS} -std=gnu99 -mzos-target=zosv2r5 -march=z13"
 export ZOPEN_SYSTEM_PREREQS="zos25"
 export ZOPEN_EXTRA_CPPFLAGS="${ZOPEN_EXTRA_CPPFLAGS} -DNI_MAXSERV=32 -DNI_MAXHOST=1025"
@@ -47,6 +49,11 @@ if [ ! -z "\$ZOPEN_IN_ZOPEN_BUILD" ]; then
   export OPENSSL_LIBS="-lssl -lcrypto"
 fi
 ZZ
+}
+
+zopen_check()
+{
+  ZOSLIB_ERROR_COMPAT=1 _EDC_ADD_ERRNO2=0 make "$@"
 }
 
 zopen_check_results()
