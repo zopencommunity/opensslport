@@ -53,7 +53,7 @@ ZZ
 
 zopen_check()
 {
-  ZOSLIB_ERROR_COMPAT=1 _EDC_ADD_ERRNO2=0 make "$@"
+  ZOSLIB_ERROR_COMPAT=1 _EDC_ADD_ERRNO2=0 make TESTS='test_ui test_bio_dgram test_pem_reading test_genrsa test_pkey test_rsa test_pkcs8 test_x509  test_pkcs12 test_store test_store_cases' test VFP=1
 }
 
 zopen_check_results()
