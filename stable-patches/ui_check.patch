@@ -1,35 +1,216 @@
-diff --git a/crypto/ui/ui_lib.c b/crypto/ui/ui_lib.c
-index 160e4c8..4e10b8e 100644
---- a/crypto/ui/ui_lib.c
-+++ b/crypto/ui/ui_lib.c
-@@ -20,6 +20,21 @@ UI *UI_new(void)
-     return UI_new_method(NULL);
- }
+diff --git a/apps/enc.c b/apps/enc.c
+index 3f45ba1..2479a1b 100644
+--- a/apps/enc.c
++++ b/apps/enc.c
+@@ -411,8 +411,8 @@ int enc_main(int argc, char **argv)
+     }
  
-+static int isUIsupported(UI *ui, const UI_METHOD *method)
+     if ((str == NULL) && (cipher != NULL) && (hkey == NULL) && (skeyopts == NULL)) {
+-        if (1) {
+ #ifndef OPENSSL_NO_UI_CONSOLE
++        if (UI_check() > 0) {
+             for (;;) {
+                 char prompt[200];
+ 
+@@ -434,8 +434,9 @@ int enc_main(int argc, char **argv)
+                     goto end;
+                 }
+             }
+-        } else {
++        } else 
+ #endif
++        {
+             BIO_printf(bio_err, "password required\n");
+             goto end;
+         }
+diff --git a/apps/lib/apps_ui.c b/apps/lib/apps_ui.c
+index 00e0ba5..b0a8645 100644
+--- a/apps/lib/apps_ui.c
++++ b/apps/lib/apps_ui.c
+@@ -124,7 +124,8 @@ int setup_ui_method(void)
+ {
+     ui_base_method = UI_null();
+ #ifndef OPENSSL_NO_UI_CONSOLE
+-    ui_base_method = UI_OpenSSL();
++    if(UI_check() > 0)
++      ui_base_method = UI_OpenSSL();
+ #endif
+     ui_method = UI_create_method("OpenSSL application user interface");
+     return ui_method != NULL
+diff --git a/apps/passwd.c b/apps/passwd.c
+index 8b23353..f902a37 100644
+--- a/apps/passwd.c
++++ b/apps/passwd.c
+@@ -233,8 +233,8 @@ int passwd_main(int argc, char **argv)
+          * in the 'else' section is always compiled, to
+          * avoid rot of not-frequently-used code.
+          */
+-        if (1) {
+ #ifndef OPENSSL_NO_UI_CONSOLE
++        if (UI_check() > 0) {
+             /* build a null-terminated list */
+             static char *passwds_static[2] = { NULL, NULL };
+ 
+@@ -246,8 +246,9 @@ int passwd_main(int argc, char **argv)
+                     goto end;
+             }
+             passwds[0] = passwd_malloc;
+-        } else {
++        } else 
+ #endif
++        {
+             BIO_printf(bio_err, "password required\n");
+             goto end;
+         }
+diff --git a/apps/pkcs12.c b/apps/pkcs12.c
+index 9964faf..eb07470 100644
+--- a/apps/pkcs12.c
++++ b/apps/pkcs12.c
+@@ -521,15 +521,16 @@ int pkcs12_main(int argc, char **argv)
+ 
+     if (twopass) {
+         /* To avoid bit rot */
+-        if (1) {
+ #ifndef OPENSSL_NO_UI_CONSOLE
++        if (UI_check() > 0) {
+             if (EVP_read_pw_string(
+                 macpass, sizeof(macpass), "Enter MAC Password:", export_pkcs12)) {
+                 BIO_printf(bio_err, "Can't read Password\n");
+                 goto end;
+             }
+-        } else {
++        } else
+ #endif
++        {
+             BIO_printf(bio_err, "Unsupported option -twopass\n");
+             goto end;
+         }
+@@ -671,15 +672,16 @@ int pkcs12_main(int argc, char **argv)
+ 
+         if (!noprompt && !(enc == NULL && maciter == -1)) {
+             /* To avoid bit rot */
+-            if (1) {
+ #ifndef OPENSSL_NO_UI_CONSOLE
++            if (UI_check() > 0) {
+                 if (EVP_read_pw_string(pass, sizeof(pass),
+                                        "Enter Export Password:", 1)) {
+                     BIO_printf(bio_err, "Can't read Password\n");
+                     goto export_end;
+                 }
+-            } else {
++            } else 
+ #endif
++            {
+                 BIO_printf(bio_err, "Password required\n");
+                 goto export_end;
+             }
+@@ -763,15 +765,16 @@ int pkcs12_main(int argc, char **argv)
+     }
+ 
+     if (!noprompt) {
+-        if (1) {
+ #ifndef OPENSSL_NO_UI_CONSOLE
++        if (UI_check() > 0) {
+             if (EVP_read_pw_string(pass, sizeof(pass), "Enter Import Password:",
+                                    0)) {
+                 BIO_printf(bio_err, "Can't read Password\n");
+                 goto end;
+             }
+-        } else {
++        } else 
+ #endif
++        {
+             BIO_printf(bio_err, "Password required\n");
+             goto end;
+         }
+diff --git a/apps/pkcs8.c b/apps/pkcs8.c
+index 22978af..a670b63 100644
+--- a/apps/pkcs8.c
++++ b/apps/pkcs8.c
+@@ -270,17 +270,20 @@ int pkcs8_main(int argc, char **argv)
+             }
+             if (passout != NULL) {
+                 p8pass = passout;
+-            } else if (1) {
++            }
+                 /* To avoid bit rot */
+ #ifndef OPENSSL_NO_UI_CONSOLE
++            else if(UI_check() > 0 ) {
+                 p8pass = pass;
+                 if (EVP_read_pw_string
+                     (pass, sizeof(pass), "Enter Encryption Password:", 1)) {
+                     X509_ALGOR_free(pbe);
+                     goto end;
+                 }
+-            } else {
++            }
+ #endif
++            else
++            {
+                 BIO_printf(bio_err, "Password required\n");
+                 goto end;
+             }
+@@ -332,15 +335,17 @@ int pkcs8_main(int argc, char **argv)
+         }
+         if (passin != NULL) {
+             p8pass = passin;
+-        } else if (1) {
++        } 
+ #ifndef OPENSSL_NO_UI_CONSOLE
++        else if(UI_check() > 0) {
+             p8pass = pass;
+             if (EVP_read_pw_string(pass, sizeof(pass), "Enter Password:", 0)) {
+                 BIO_printf(bio_err, "Can't read Password\n");
+                 goto end;
+             }
+-        } else {
++        } 
+ #endif
++        else {
+             BIO_printf(bio_err, "Password required\n");
+             goto end;
+         }
+diff --git a/crypto/ui/ui_openssl.c b/crypto/ui/ui_openssl.c
+index 544415e..e5f6317 100644
+--- a/crypto/ui/ui_openssl.c
++++ b/crypto/ui/ui_openssl.c
+@@ -730,3 +730,26 @@ const UI_METHOD *UI_get_default_method(void)
+ {
+     return default_UI_meth;
+ }
++
++#ifndef OPENSSL_NO_UI_CONSOLE
++
++int UI_check(void)
 +{
-+    if (method->ui_open_session != NULL
-+        && method->ui_open_session(ui) <= 0) {
-+      return -1;
-+    }
++  static int ret = -1;
++  static int check_done = 0;
 +
-+    if (method->ui_close_session != NULL
-+         && method->ui_close_session(ui) <= 0) {
-+       return -1;
-+    }
++  if(!check_done)
++  {
++    UI* ui = UI_new();
++    ret = open_console(ui);
++    close_console(ui);
++    UI_free(ui);
++    check_done = 1;
++    if(ret <= 0)
++        UI_set_default_method(NULL);
++  }
 +
-+    return 0;
++  return ret;
 +}
 +
- UI *UI_new_method(const UI_METHOD *method)
- {
-     UI *ret = OPENSSL_zalloc(sizeof(*ret));
-@@ -36,7 +51,7 @@ UI *UI_new_method(const UI_METHOD *method)
++#endif
+diff --git a/include/openssl/ui.h.in b/include/openssl/ui.h.in
+index eb9a580..61abc55 100644
+--- a/include/openssl/ui.h.in
++++ b/include/openssl/ui.h.in
+@@ -234,6 +234,8 @@ const UI_METHOD *UI_set_method(UI *ui, const UI_METHOD *meth);
+ /* The method with all the built-in thingies */
+ UI_METHOD *UI_OpenSSL(void);
  
-     if (method == NULL)
-         method = UI_get_default_method();
--    if (method == NULL)
-+    if (method == NULL || isUIsupported(ret, method) < 0)
-         method = UI_null();
-     ret->meth = method;
++int UI_check(void);
++
+ # endif
  
+ /*
