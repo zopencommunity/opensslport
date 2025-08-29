@@ -23,7 +23,7 @@ fi
 
 export ZOPEN_CONFIGURE="./Configure"
 export ZOPEN_EXTRA_CONFIGURE_OPTS="OS390-ASCII"
-export ZOPEN_CHECK="make"
+export ZOPEN_CHECK="zopen_check"
 export ZOPEN_CHECK_OPTS="HARNESS_JOBS=\$ZOPEN_NUM_JOBS test"
 export ZOPEN_CHECK_MINIMAL="y"
 export ZOPEN_EXTRA_CFLAGS="${ZOPEN_EXTRA_CFLAGS} -std=gnu99 -mzos-target=zosv2r5 -march=z13"
@@ -53,7 +53,7 @@ ZZ
 
 zopen_check()
 {
-  ZOSLIB_ERROR_COMPAT=1 _EDC_ADD_ERRNO2=0 make TESTS='test_ui test_bio_dgram test_pem_reading test_genrsa test_pkey test_rsa test_pkcs8 test_x509  test_pkcs12 test_store test_store_cases' test VFP=1
+  make TESTS='test_ui test_bio_dgram test_pem_reading test_genrsa test_pkey test_rsa test_pkcs8 test_x509  test_pkcs12 test_store test_store_cases' test VFP=1
 }
 
 zopen_check_results()

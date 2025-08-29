@@ -1,0 +1,35 @@
+diff --git a/crypto/ui/ui_lib.c b/crypto/ui/ui_lib.c
+index 160e4c8..4e10b8e 100644
+--- a/crypto/ui/ui_lib.c
++++ b/crypto/ui/ui_lib.c
+@@ -20,6 +20,21 @@ UI *UI_new(void)
+     return UI_new_method(NULL);
+ }
+ 
++static int isUIsupported(UI *ui, const UI_METHOD *method)
++{
++    if (method->ui_open_session != NULL
++        && method->ui_open_session(ui) <= 0) {
++      return -1;
++    }
++
++    if (method->ui_close_session != NULL
++         && method->ui_close_session(ui) <= 0) {
++       return -1;
++    }
++
++    return 0;
++}
++
+ UI *UI_new_method(const UI_METHOD *method)
+ {
+     UI *ret = OPENSSL_zalloc(sizeof(*ret));
+@@ -36,7 +51,7 @@ UI *UI_new_method(const UI_METHOD *method)
+ 
+     if (method == NULL)
+         method = UI_get_default_method();
+-    if (method == NULL)
++    if (method == NULL || isUIsupported(ret, method) < 0)
+         method = UI_null();
+     ret->meth = method;
+ 
