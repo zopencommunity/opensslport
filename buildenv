@@ -67,7 +67,8 @@ else
   cat <<ZZ
   actualFailures:$failures
   totalTests:$totalTests
-  expectedFailures:12
+# 1 failure is expected as IPv6 not enabled on jenkins machines
+  expectedFailures:1
 ZZ
 fi
 }
