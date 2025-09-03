@@ -1,0 +1,19 @@
+diff --git a/crypto/ui/ui_openssl.c b/crypto/ui/ui_openssl.c
+index 544415e..57489e9 100644
+--- a/crypto/ui/ui_openssl.c
++++ b/crypto/ui/ui_openssl.c
+@@ -455,6 +455,14 @@ static int open_console(UI *ui)
+                 is_a_tty = 0;
+         else
+ #  endif
++# if defined(__MVS__) && defined(ENOSYS)
++            /*
++             * In Jenkins Non-Interactive build
++             */
++        if (errno == ENOSYS)
++                is_a_tty = 0;
++        else
++# endif
+             {
+                 ERR_raise_data(ERR_LIB_UI, UI_R_UNKNOWN_TTYGET_ERRNO_VALUE,
+                                "errno=%d", errno);
