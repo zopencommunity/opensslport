@@ -1,0 +1,28 @@
+diff --git i/crypto/rsa/rsa_ossl.c w/crypto/rsa/rsa_ossl.c
+index 1e56c6d..11dc29f 100644
+--- i/crypto/rsa/rsa_ossl.c
++++ w/crypto/rsa/rsa_ossl.c
+@@ -231,7 +231,11 @@ void *ossl_rsa_alloc_blinding(void)
+ static BN_BLINDING *ossl_rsa_get_thread_bn_blinding(RSA *rsa)
+ {
+     SPARSE_ARRAY_OF(BN_BLINDING) *blindings = rsa->blindings_sa;
++#ifdef __MVS__
++    uintptr_t tid = (uintptr_t)CRYPTO_THREAD_get_current_id().__;
++#else
+     uintptr_t tid = (uintptr_t)CRYPTO_THREAD_get_current_id();
++#endif
+ 
+     return ossl_sa_BN_BLINDING_get(blindings, tid);
+ }
+@@ -239,7 +243,11 @@ static BN_BLINDING *ossl_rsa_get_thread_bn_blinding(RSA *rsa)
+ static int ossl_rsa_set_thread_bn_blinding(RSA *rsa, BN_BLINDING *b)
+ {
+     SPARSE_ARRAY_OF(BN_BLINDING) *blindings = rsa->blindings_sa;
++#ifdef __MVS__
++    uintptr_t tid = (uintptr_t)CRYPTO_THREAD_get_current_id().__;
++#else
+     uintptr_t tid = (uintptr_t)CRYPTO_THREAD_get_current_id();
++#endif
+ 
+     return ossl_sa_BN_BLINDING_set(blindings, tid, b);
+ }
