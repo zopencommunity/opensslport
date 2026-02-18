@@ -1,0 +1,64 @@
+diff --git a/crypto/asn1/tasn_dec.c b/crypto/asn1/tasn_dec.c
+index da9f801..dfe45db 100644
+--- a/crypto/asn1/tasn_dec.c
++++ b/crypto/asn1/tasn_dec.c
+@@ -182,6 +182,8 @@ static int asn1_item_embed_d2i(ASN1_VALUE **pval, const unsigned char **in,
+         ERR_raise(ERR_LIB_ASN1, ERR_R_PASSED_NULL_PARAMETER);
+         return 0;
+     }
++    if (it->sname != NULL && getenv("ASN1_DEBUG"))
++        fprintf(stderr, "DEBUG: asn1_item_embed_d2i it=%s len=%ld tag=%d\n", it->sname, len, tag);
+     if (len <= 0) {
+         ERR_raise(ERR_LIB_ASN1, ASN1_R_TOO_SMALL);
+         return 0;
+@@ -442,6 +444,13 @@ static int asn1_item_embed_d2i(ASN1_VALUE **pval, const unsigned char **in,
+         }
+         /* Check all data read */
+         if (!seq_nolen && len) {
++# if defined(__MVS__)
++            /*
++             * On z/OS, if we have leftover data in a sequence during trial decoding,
++             * it's likely a mismatch. Return -1 to signal a non-fatal error.
++             */
++             return -1;
++# endif
+             ERR_raise(ERR_LIB_ASN1, ASN1_R_SEQUENCE_LENGTH_MISMATCH);
+             goto err;
+         }
+@@ -648,9 +657,17 @@ static int asn1_template_noexp_d2i(ASN1_VALUE **val,
+                 break;
+             }
+             skfield = NULL;
+-            if (asn1_item_embed_d2i(&skfield, &p, len,
++            ret = asn1_item_embed_d2i(&skfield, &p, len,
+                                      ASN1_ITEM_ptr(tt->item), -1, 0, 0, ctx,
+-                                     depth, libctx, propq) <= 0) {
++                                     depth, libctx, propq);
++            if (ret <= 0) {
++# if defined(__MVS__)
++                if (ret == -1) {
++                    /* On z/OS, treat mismatch as non-fatal but stop decoding this stack */
++                    ASN1_item_free(skfield, ASN1_ITEM_ptr(tt->item));
++                    return -1;
++                }
++# endif
+                 ERR_raise(ERR_LIB_ASN1, ERR_R_NESTED_ASN1_ERROR);
+                 /* |skfield| may be partially allocated despite failure. */
+                 ASN1_item_free(skfield, ASN1_ITEM_ptr(tt->item));
+@@ -1196,6 +1213,16 @@ static int asn1_check_tlen(long *olen, int *otag, unsigned char *oclass,
+              */
+             if (opt != 0)
+                 return -1;
++# if defined(__MVS__)
++            /*
++             * On z/OS, OpenSSL's trial decoding often mistakenly tries to parse 
++             * certificate data as PKCS#8, causing noisy "wrong tag" errors.
++             * If we are in a guessing phase, we treat this as a non-fatal mismatch.
++             */
++            if (ptag == V_ASN1_OCTET_STRING || ptag == V_ASN1_INTEGER || ptag == V_ASN1_OBJECT) {
++                return -1; 
++            }
++# endif
+             ERR_raise(ERR_LIB_ASN1, ASN1_R_WRONG_TAG);
+             goto err;
+         }

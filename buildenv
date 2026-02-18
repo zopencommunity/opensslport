@@ -15,14 +15,14 @@ else
   export ZOPEN_STABLE_URL="https://github.com/openssl/openssl.git"
   export ZOPEN_STABLE_URL="https://www.openssl.org/source/openssl-${OPENSSL_3_VERSION}.tar.gz"
   export ZOPEN_STABLE_TAG="openssl-${OPENSSL_3_VERSION}"
-  export ZOPEN_STABLE_DEPS="curl git gzip make m4 perl tar zoslib"
+  export ZOPEN_STABLE_DEPS="curl git gzip make m4 perl tar zoslib findutils grep sed diffutils"
 
   export ZOPEN_DEV_URL="https://github.com/openssl/openssl.git"
   export ZOPEN_DEV_DEPS="curl git gzip make m4 perl tar zoslib"
 fi
 
 export ZOPEN_CONFIGURE="./Configure"
-export ZOPEN_EXTRA_CONFIGURE_OPTS="OS390-ASCII"
+export ZOPEN_EXTRA_CONFIGURE_OPTS="zos-clang shared"
 export ZOPEN_CHECK_OPTS="HARNESS_JOBS=\$ZOPEN_NUM_JOBS test"
 export ZOPEN_EXTRA_CFLAGS="${ZOPEN_EXTRA_CFLAGS} -std=gnu99 -mzos-target=zosv2r5 -march=z13"
 export ZOPEN_SYSTEM_PREREQS="zos25"

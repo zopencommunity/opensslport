@@ -1,0 +1,20 @@
+diff --git a/test/recipes/90-test_store.t b/test/recipes/90-test_store.t
+index aa95f84..cbf0063 100644
+--- a/test/recipes/90-test_store.t
++++ b/test/recipes/90-test_store.t
+@@ -105,8 +105,13 @@ my @methods;
+ my @prov_method = qw(-provider default);
+ push @prov_method, qw(-provider legacy) unless disabled('legacy');
+ push @methods, [ @prov_method ];
+-push @methods, [qw(-engine loader_attic)]
+-    unless disabled('loadereng');
++
++unless (disabled('loadereng')) {
++    my @loader_method = qw(-engine loader_attic);
++    push @loader_method, qw(-provider default);
++    push @loader_method, qw(-provider legacy) unless disabled('legacy');
++    push @methods, \@loader_method;
++}
+ 
+ my $n = 4 + scalar @methods
+     * ( (3 * scalar @noexist_files)

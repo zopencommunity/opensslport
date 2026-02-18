@@ -1,0 +1,31 @@
+--- a/test/shlibloadtest.c
++++ b/test/shlibloadtest.c
+@@ -151,11 +151,13 @@
+         goto end;
+     }
+ 
+-    if (!sd_sym(cryptolib, "OPENSSL_cleanup", &symbols[0].sym)) {
+-        fprintf(stderr, "Failed to load OPENSSL_cleanup symbol\n");
+-        goto end;
++    if (test_type != NO_ATEXIT) {
++        if (!sd_sym(cryptolib, "OPENSSL_cleanup", &symbols[0].sym)) {
++            fprintf(stderr, "Failed to load OPENSSL_cleanup symbol\n");
++            goto end;
++        }
++        ((void (*)(void))symbols[0].func)();
+     }
+-    ((void (*)(void))symbols[0].func)();
+ 
+     if (test_type == DSO_REFTEST) {
+ # ifdef DSO_DLFCN
+--- a/test/recipes/90-test_shlibload.t
++++ b/test/recipes/90-test_shlibload.t
+@@ -21,7 +21,7 @@
+ plan skip_all => "Test only supported in a shared build" if disabled("shared");
+ plan skip_all => "Test is disabled on AIX" if config('target') =~ m|^aix|;
+ plan skip_all => "Test is disabled on NonStop" if config('target') =~ m|^nonstop|;
+-plan skip_all => "Test is disabled on z/OS" if config('target') =~ m|^zos|;
++# plan skip_all => "Test is disabled on z/OS" if config('target') =~ m|^zos|;
+ plan skip_all => "Test only supported in a dso build" if disabled("dso");
+ plan skip_all => "Test is disabled in an address sanitizer build" unless disabled("asan");
+ plan skip_all => "Test is disabled in no-atexit build" if disabled("atexit");

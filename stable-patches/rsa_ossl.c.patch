@@ -1,7 +1,7 @@
-diff --git i/crypto/rsa/rsa_ossl.c w/crypto/rsa/rsa_ossl.c
+diff --git a/crypto/rsa/rsa_ossl.c b/crypto/rsa/rsa_ossl.c
 index 1e56c6d..11dc29f 100644
---- i/crypto/rsa/rsa_ossl.c
-+++ w/crypto/rsa/rsa_ossl.c
+--- a/crypto/rsa/rsa_ossl.c
++++ b/crypto/rsa/rsa_ossl.c
 @@ -231,7 +231,11 @@ void *ossl_rsa_alloc_blinding(void)
  static BN_BLINDING *ossl_rsa_get_thread_bn_blinding(RSA *rsa)
  {

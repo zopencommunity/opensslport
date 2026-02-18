@@ -1,0 +1,119 @@
+diff --git a/util/perl/TLSProxy/Proxy.pm b/util/perl/TLSProxy/Proxy.pm
+index ccc4814..d49f90a 100644
+--- a/util/perl/TLSProxy/Proxy.pm
++++ b/util/perl/TLSProxy/Proxy.pm
+@@ -121,42 +121,50 @@ sub init
+         $debug,
+         $isdtls) = @_;
+ 
+-    my $test_client_port;
+-
+-    # Sometimes, our random selection of client ports gets unlucky
+-    # And we randomly select a port thats already in use.  This causes
+-    # this test to fail, so lets harden ourselves against that by doing
+-    # a test bind to the randomly selected port, and only continue once we
+-    # find a port thats available.
++    # Default port initialization. A value of 0 means the system will pick a free
++    # port when the client connects. This avoids unnecessary port searches for 
++    # TCP-based TLS tests, which reduces 'Address already in use' errors.
++    my $test_client_port = 0;
+     my $test_client_addr = $have_IPv6 ? "[::1]" : "127.0.0.1";
+-    my $found_port = 0;
+-    for (my $i = 0; $i <= 10; $i++) {
+-        $test_client_port = 49152 + int(rand(65535 - 49152));
+-        my $test_sock;
+-        if ($useINET6 == 0) {
+-            if ($useSockInet == 0) {
+-                $test_sock = IO::Socket::IP->new(LocalPort => $test_client_port,
+-                                                 LocalAddr => $test_client_addr);
++
++    # Specific port selection is only required for DTLS, as s_client needs to
++    # -bind to a specific port to receive return UDP traffic.
++    if ($isdtls) {
++        # Sometimes, our random selection of client ports gets unlucky
++        # And we randomly select a port thats already in use.  This causes
++        # this test to fail, so lets harden ourselves against that by doing
++        # a test bind to the randomly selected port, and only continue once we
++        # find a port thats available.
++        my $found_port = 0;
++        for (my $i = 0; $i <= 10; $i++) {
++            my $test_sock;
++            if ($useINET6 == 0) {
++                if ($useSockInet == 0) {
++                    $test_sock = IO::Socket::IP->new(LocalPort => 0,
++                                                     LocalAddr => $test_client_addr);
++                } else {
++                    $test_sock = IO::Socket::INET->new(LocalAddr => $test_client_addr,
++                                                       LocalPort => 0);
++                }
+             } else {
+-                $test_sock = IO::Socket::INET->new(LocalAddr => $test_client_addr,
+-                                                   LocalPort => $test_client_port);
++                $test_sock = IO::Socket::INET6->new(LocalAddr => $test_client_addr,
++                                                    LocalPort => 0,
++                                                    Domain => AF_INET6);
+             }
+-        } else {
+-            $test_sock = IO::Socket::INET6->new(LocalAddr => $test_client_addr,
+-                                                LocalPort => $test_client_port,
+-                                                Domain => AF_INET6);
++            if ($test_sock) {
++                $test_client_port = $test_sock->sockport();
++                $found_port = 1;
++                $test_sock->close();
++                print "Found available client port ${test_client_port}\n";
++                last;
++            }
++            # Only print error if it wasn't just rand being unlucky (since we use 0 now it should just work)
++            print "Unable to find available client port - $@\n";
+         }
+-        if ($test_sock) {
+-            $found_port = 1;
+-            $test_sock->close();
+-            print "Found available client port ${test_client_port}\n";
+-            last;
++
++        if ($found_port == 0) {
++            die "Unable to find usable port for TLSProxy";
+         }
+-        print "Port ${test_client_port} in use - $@\n";
+-    }
+-  
+-    if ($found_port == 0) {
+-        die "Unable to find usable port for TLSProxy";
+     }
+ 
+     my $self = {
+@@ -199,6 +207,10 @@ sub DESTROY
+     my $self = shift;
+ 
+     $self->{proxy_sock}->close() if $self->{proxy_sock};
++    $self->{server_sock}->close() if $self->{server_sock};
++    kill(3, $self->{real_serverpid}) if $self->{real_serverpid};
++    kill(3, $self->{serverpid}) if $self->{serverpid};
++    kill(3, $self->{clientpid}) if $self->{clientpid};
+ }
+ 
+ sub clearClient
+@@ -570,11 +582,13 @@ sub clientstart
+             kill(3, $self->{real_serverpid});
+             die "lost control over $self->{serverpid}?";
+         }
++        $self->{serverpid} = 0;
+         $pid = $self->{real_serverpid};
+         print "Waiting for s_server process to close: $pid...\n";
+         # it's done already, just collect the exit code [and reap]...
+         waitpid($pid, 0);
+         die "exit code $? from s_server process\n" if $? != 0;
++        $self->{real_serverpid} = 0;
+     } else {
+         # It's a bit counter-intuitive spot to make next connection to
+         # the s_server. Rationale is that established connection works
+@@ -585,6 +599,7 @@ sub clientstart
+     $pid = $self->{clientpid};
+     print "Waiting for s_client process to close: $pid...\n";
+     waitpid($pid, 0);
++    $self->{clientpid} = 0;
+ 
+     return $success;
+ }

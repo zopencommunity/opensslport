@@ -1,8 +1,8 @@
 diff --git a/Configurations/50-os390.conf b/Configurations/50-os390.conf
-index 6e86cb64fe..9b5e6237d6 100644
+index 6e86cb6..e52ec4b 100644
 --- a/Configurations/50-os390.conf
 +++ b/Configurations/50-os390.conf
-@@ -7,5 +7,9 @@
+@@ -7,5 +7,32 @@
          cflags           => "-O -DB_ENDIAN -DCHARSET_EBCDIC",
          bn_ops           => "THIRTY_TWO_BIT RC4_CHAR",
          thread_scheme    => "(unknown)",
@@ -10,6 +10,29 @@ index 6e86cb64fe..9b5e6237d6 100644
 +    },
 +    "OS390-ASCII" => {
 +       inherit_from     => [ "BASE_unix" ],
-+       thread_scheme    => "pthreads"
++       thread_scheme    => "pthreads",
++       dso_scheme       => "dlfcn",
++       shared_target    => "zos-shared",
++       shared_extension => ".so",
++       defines          => [ "OPENSSL_SYS_ZOS", "ZOS", "CHARSET_ASCII", "_XOPEN_SOURCE=600" ],
++    },
++    "zos-clang" => {
++        inherit_from     => [ "BASE_unix" ],
++	# Compiler
++	cc               => "clang",
++        cflags           => "-fPIC -fvisibility=default",
++        cxxflags         => "-fPIC -fvisibility=default",
++	# Shared library
++	shared_target    => "zos-shared",
++        shared_cflag     => "-fPIC",
++        shared_ldflag    => "-shared -fvisibility=default",
++        shared_extension => ".so",
++	dso_ldflag       => "-shared -fvisibility=default",
++	dso_scheme       => "dlfcn",
++	# Threading
++	thread_scheme    => "pthreads",	
++
++	bn_ops => "SIXTY_FOUR_BIT",
++	defines          => [ "OPENSSL_SYS_ZOS", "ZOS", "CHARSET_ASCII", "_XOPEN_SOURCE=600" ]
 +    },
  );

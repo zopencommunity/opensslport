@@ -1,0 +1,12 @@
+diff --git a/test/p_minimal.c b/test/p_minimal.c
+index 0bff982..099bcb7 100644
+--- a/test/p_minimal.c
++++ b/test/p_minimal.c
+@@ -12,6 +12,7 @@
+  * absolutely nothing else.
+  */
+ 
++#pragma export(OSSL_provider_init)
+ #include <openssl/core.h>
+ 
+ OSSL_provider_init_fn OSSL_provider_init; /* Check the function signature */

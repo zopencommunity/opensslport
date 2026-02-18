@@ -1,0 +1,19 @@
+diff --git a/test/recipes/90-test_shlibload.t b/test/recipes/90-test_shlibload.t
+index 67afff6..ef2833e 100644
+--- a/test/recipes/90-test_shlibload.t
++++ b/test/recipes/90-test_shlibload.t
+@@ -21,6 +21,7 @@ use platform;
+ plan skip_all => "Test only supported in a shared build" if disabled("shared");
+ plan skip_all => "Test is disabled on AIX" if config('target') =~ m|^aix|;
+ plan skip_all => "Test is disabled on NonStop" if config('target') =~ m|^nonstop|;
++# plan skip_all => "Test is disabled on z/OS" if config('target') =~ m|^zos|;
+ plan skip_all => "Test only supported in a dso build" if disabled("dso");
+ plan skip_all => "Test is disabled in an address sanitizer build" unless disabled("asan");
+ plan skip_all => "Test is disabled in no-atexit build" if disabled("atexit");
+@@ -72,4 +73,4 @@ sub check_atexit {
+     return 1 if (defined $data && $data =~ m/atexit\(\) run/);
+ 
+     return 0;
+-}
++}
+\ No newline at end of file

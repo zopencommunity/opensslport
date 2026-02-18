@@ -1,0 +1,12 @@
+diff --git a/test/recipes/01-test_symbol_presence.t b/test/recipes/01-test_symbol_presence.t
+index 222b188..bf08f8d 100644
+--- a/test/recipes/01-test_symbol_presence.t
++++ b/test/recipes/01-test_symbol_presence.t
+@@ -24,6 +24,7 @@ use platform;
+ plan skip_all => "Test is disabled on NonStop" if config('target') =~ m|^nonstop|;
+ # MacOS arranges symbol names differently
+ plan skip_all => "Test is disabled on MacOS" if config('target') =~ m|^darwin|;
++plan skip_all => "Test is disabled on OS390. Since nm doesn't have an option to display only external symbols" if config('target') =~ m|^(OS390|zos)|;
+ plan skip_all => "This is unsupported on platforms that don't have 'nm'"
+     unless IPC::Cmd::can_run('nm');
+ 

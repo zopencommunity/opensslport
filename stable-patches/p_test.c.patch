@@ -1,0 +1,12 @@
+diff --git a/test/p_test.c b/test/p_test.c
+index 05f71ec..414177d 100644
+--- a/test/p_test.c
++++ b/test/p_test.c
+@@ -29,6 +29,7 @@
+ #endif
+ 
+ #include "internal/e_os.h"
++#pragma export(OSSL_provider_init)
+ #include <openssl/core.h>
+ #include <openssl/core_dispatch.h>
+ #include <openssl/err.h>

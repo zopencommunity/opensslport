@@ -1,0 +1,45 @@
+diff --git a/test/bio_dgram_test.c b/test/bio_dgram_test.c
+index 62525f4..6bd141e 100644
+--- a/test/bio_dgram_test.c
++++ b/test/bio_dgram_test.c
+@@ -8,6 +8,7 @@
+  */
+ 
+ #include <string.h>
++#include <errno.h>
+ #include <openssl/bio.h>
+ #include <openssl/rand.h>
+ #include "testutil.h"
+@@ -168,11 +169,32 @@ static int test_bio_dgram_impl(int af, int use_local)
+     if (!TEST_int_eq(BIO_ADDR_rawmake(addr2, af, pina, inal, 0), 1))
+         goto err;
+ 
++    /*
++     * We dynamically detect if the address family is supported by the OS.
++     * If BIO_socket fails with EAFNOSUPPORT, we skip the test iteration
++     * rather than failing, as IPv6 might be compiled in but not available.
++     */
+     fd1 = BIO_socket(af, SOCK_DGRAM, IPPROTO_UDP, 0);
++    if (fd1 == INVALID_SOCKET) {
++        int err = get_last_socket_error();
++
++        if (err == EAFNOSUPPORT || err == EPROTONOSUPPORT) {
++            testresult = TEST_skip("BIO_socket() failed - address family not supported");
++            goto err;
++        }
++    }
+     if (!TEST_int_ge(fd1, 0))
+         goto err;
+ 
+     fd2 = BIO_socket(af, SOCK_DGRAM, IPPROTO_UDP, 0);
++    if (fd2 == INVALID_SOCKET) {
++        int err = get_last_socket_error();
++
++        if (err == EAFNOSUPPORT || err == EPROTONOSUPPORT) {
++            testresult = TEST_skip("BIO_socket() failed - address family not supported");
++            goto err;
++        }
++    }
+     if (!TEST_int_ge(fd2, 0))
+         goto err;
+ 
