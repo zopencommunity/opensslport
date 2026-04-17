@@ -15,7 +15,7 @@ else
   export ZOPEN_STABLE_URL="https://github.com/openssl/openssl.git"
   export ZOPEN_STABLE_URL="https://www.openssl.org/source/openssl-${OPENSSL_3_VERSION}.tar.gz"
   export ZOPEN_STABLE_TAG="openssl-${OPENSSL_3_VERSION}"
-  export ZOPEN_STABLE_DEPS="curl git gzip make m4 perl tar zoslib"
+  export ZOPEN_STABLE_DEPS="make m4 perl"
 
   export ZOPEN_DEV_URL="https://github.com/openssl/openssl.git"
   export ZOPEN_DEV_DEPS="curl git gzip make m4 perl tar zoslib"
