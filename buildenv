@@ -52,9 +52,15 @@ zopen_check_results()
 {
 chk="$1/$2_check.log"
 
-successes=$(grep -E " ok$" ${chk} | wc -l)
-totalTests=$(grep -E "^Failed | ok$" ${chk} | wc -l)
-failures="$((totalTests-successes))"
+failures=0
+if ! cat "${chk}" | grep -q "Result: PASS"; then
+  failures=$(cat "${chk}" | grep "subtests failed" | awk '{print $1}' | cut -d/ -f1)
+  if [ -z "$failures" ]; then
+    failures=$(cat "${chk}" | grep "not ok" | wc -l)
+  fi
+fi
+
+totalTests=$(cat "${chk}" | grep "Tests=" | tail -n 1 | awk -F'Tests=' '{print $2}' | awk -F',' '{print $1}')
 
 if [ ! -z "$OPENSSL_HW_BUILD" ]; then
   cat <<ZZ
