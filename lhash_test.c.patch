@@ -1,0 +1,10 @@
+--- openssl-4.0.0/test/lhash_test.c
++++ openssl-4.0.0/test/lhash_test.c
+@@ -517,6 +517,7 @@
+             num_workers = jobs;
+     }
+ 
++    TEST_info("DEBUG: num_workers before check is %d", num_workers);
+     if (num_workers <= 0)
+         num_workers = 1;
+ 
