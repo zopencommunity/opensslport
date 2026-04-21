@@ -1,10 +1,21 @@
 --- openssl-4.0.0/test/bio_dgram_test.c
 +++ openssl-4.0.0/test/bio_dgram_test.c
-@@ -166,6 +166,7 @@
+@@ -8,6 +8,7 @@
+  */
+ 
+ #include <string.h>
++#include <errno.h>
+ #include <openssl/bio.h>
+ #include <openssl/rand.h>
+ #include "testutil.h"
+@@ -171,6 +172,10 @@
+         goto err;
+ 
      fd1 = BIO_socket(af, SOCK_DGRAM, IPPROTO_UDP, 0);
-     if (fd1 < 0) {
- #ifdef EAFNOSUPPORT
-+        TEST_info("BIO_socket failed with error %d (EAFNOSUPPORT is %d)", get_last_socket_error(), EAFNOSUPPORT);
-         if (get_last_socket_error() == EAFNOSUPPORT) {
-             testresult = TEST_skip("BIO_socket() failed - Address family not supported");
-             goto err;
++    if (fd1 < 0 && (get_last_socket_error() == EAFNOSUPPORT || get_last_socket_error() == 1114)) {
++        testresult = TEST_skip("BIO_socket() failed - Address family not supported");
++        goto err;
++    }
+     if (!TEST_int_ge(fd1, 0))
+         goto err;
+ 
