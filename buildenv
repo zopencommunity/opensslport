@@ -1,20 +1,19 @@
-# bump: openssl-3-version /OPENSSL_3_VERSION="(.*)"/ https://www.openssl.org/source/|re:/openssl-([\d.]+).tar.gz/$1/|semver:*
-OPENSSL_3_VERSION="3.6.0"
+# bump: openssl-3-version /OPENSSL_VERSION="(.*)"/ https://www.openssl.org/source/|re:/openssl-([\d.]+).tar.gz/$1/|semver:*
+OPENSSL_VERSION="4.0.0"
 
 
 if [ ! -z "$OPENSSL_HW_BUILD" ]; then
   rm -f patches
   export ZOPEN_BUILD_LINE="STABLE"
   printHeader "Building HW accelerated openssl"
-  export ZOPEN_STABLE_URL="https://www.openssl.org/source/openssl-${OPENSSL_3_VERSION}.tar.gz"
+  export ZOPEN_STABLE_URL="https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"
   export ZOPEN_STABLE_DEPS="curl git gzip make m4 perl tar"
   ln -s hardware_patches patches
 else
   printHeader "Building SW openssl"
   export ZOPEN_BUILD_LINE="STABLE"
-  export ZOPEN_STABLE_URL="https://github.com/openssl/openssl.git"
-  export ZOPEN_STABLE_URL="https://www.openssl.org/source/openssl-${OPENSSL_3_VERSION}.tar.gz"
-  export ZOPEN_STABLE_TAG="openssl-${OPENSSL_3_VERSION}"
+  export ZOPEN_STABLE_URL="https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"
+  export ZOPEN_STABLE_TAG="openssl-${OPENSSL_VERSION}"
   export ZOPEN_STABLE_DEPS="make m4 perl"
 
   export ZOPEN_DEV_URL="https://github.com/openssl/openssl.git"
@@ -53,9 +52,15 @@ zopen_check_results()
 {
 chk="$1/$2_check.log"
 
-successes=$(grep -E " ok$" ${chk} | wc -l)
-totalTests=$(grep -E "^Failed | ok$" ${chk} | wc -l)
-failures="$((totalTests-successes))"
+failures=0
+if ! cat "${chk}" | grep -q "Result: PASS"; then
+  failures=$(cat "${chk}" | grep "subtests failed" | awk '{print $1}' | cut -d/ -f1)
+  if [ -z "$failures" ]; then
+    failures=$(cat "${chk}" | grep "not ok" | wc -l)
+  fi
+fi
+
+totalTests=$(cat "${chk}" | grep "Tests=" | tail -n 1 | awk -F'Tests=' '{print $2}' | awk -F',' '{print $1}')
 
 if [ ! -z "$OPENSSL_HW_BUILD" ]; then
   cat <<ZZ
@@ -81,6 +86,6 @@ EOF
 
 zopen_get_version()
 {
-  echo "$OPENSSL_3_VERSION"
+  echo "$OPENSSL_VERSION"
 }
 
