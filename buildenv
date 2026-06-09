@@ -1,5 +1,5 @@
 # bump: openssl-3-version /OPENSSL_VERSION="(.*)"/ https://www.openssl.org/source/|re:/openssl-([\d.]+).tar.gz/$1/|semver:*
-OPENSSL_VERSION="4.0.0"
+OPENSSL_VERSION="4.0.1"
 
 
 if [ ! -z "$OPENSSL_HW_BUILD" ]; then
