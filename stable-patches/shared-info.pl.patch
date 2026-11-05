@@ -1,0 +1,16 @@
+diff --git a/Configurations/shared-info.pl b/Configurations/shared-info.pl
+index caf6f90..ac3cecc 100644
+--- a/Configurations/shared-info.pl
++++ b/Configurations/shared-info.pl
+@@ -51,6 +51,11 @@ my %shared_info;
+         shared_ldflag         => '-dynamiclib -current_version $(SHLIB_VERSION_NUMBER) -compatibility_version $(SHLIB_VERSION_NUMBER)',
+         shared_sonameflag     => '-install_name $(libdir)/',
+     },
++    'zos-shared' => {
++        # clang on z/OS emits a DLL plus a .x side deck with -shared
++        shared_ldflag         => '-shared',
++        module_ldflags        => '-shared',
++    },
+     'cygwin-shared' => {
+         shared_ldflag         => '-shared -Wl,--enable-auto-image-base',
+         shared_impflag        => '-Wl,--out-implib=',
