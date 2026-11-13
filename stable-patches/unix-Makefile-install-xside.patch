@@ -1,0 +1,38 @@
+diff --git a/Configurations/unix-Makefile.tmpl b/Configurations/unix-Makefile.tmpl
+index eff66e5..0e5e070 100644
+--- a/Configurations/unix-Makefile.tmpl
++++ b/Configurations/unix-Makefile.tmpl
+@@ -934,6 +934,15 @@ install_runtime_libs: build_libs
+ 		chmod 755 "$(DESTDIR)$(libdir)/$$fn.new"; \
+ 		mv -f "$(DESTDIR)$(libdir)/$$fn.new" \
+ 		      "$(DESTDIR)$(libdir)/$$fn"; \
++		sd=`echo "$$s" | sed 's/\.so$$/.x/'`; \
++		if [ "$$sd" != "$$s" ] && [ -f "$$sd" ]; then \
++			sdfn=`basename "$$sd"`; \
++			$(ECHO) "install $$sd -> $(DESTDIR)$(libdir)/$$sdfn"; \
++			cp "$$sd" "$(DESTDIR)$(libdir)/$$sdfn.new"; \
++			chmod 644 "$(DESTDIR)$(libdir)/$$sdfn.new"; \
++			mv -f "$(DESTDIR)$(libdir)/$$sdfn.new" \
++			      "$(DESTDIR)$(libdir)/$$sdfn"; \
++		fi; \
+ 		: {- output_on() if windowsdll(); "" -}; \
+ 	done
+ 
+@@ -990,6 +999,17 @@ uninstall_runtime_libs:
+ 		$(RM) "$(DESTDIR)$(bindir)/$$fn"; \
+ 	done
+ 	@ : {- output_on() unless windowsdll(); "" -}
++	@ : {- output_off() if windowsdll(); "" -}
++	@set -e; for s in dummy $(INSTALL_SHLIBS); do \
++		if [ "$$s" = "dummy" ]; then continue; fi; \
++		sd=`echo "$$s" | sed 's/\.so$$/.x/'`; \
++		if [ "$$sd" != "$$s" ]; then \
++			sdfn=`basename "$$sd"`; \
++			$(ECHO) "$(RM) $(DESTDIR)$(libdir)/$$sdfn"; \
++			$(RM) "$(DESTDIR)$(libdir)/$$sdfn"; \
++		fi; \
++	done
++	@ : {- output_on() if windowsdll(); "" -}
+ 
+ 
+ install_man_docs: build_man_docs
