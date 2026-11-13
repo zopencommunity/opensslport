@@ -26,3 +26,39 @@
  plan skip_all => "This is unsupported on platforms that don't have 'nm'"
      unless IPC::Cmd::can_run('nm');
  
+diff --git a/test/recipes/90-test_shlibload.t b/test/recipes/90-test_shlibload.t
+index 6b0cda3..f7b09a2 100644
+--- a/test/recipes/90-test_shlibload.t
++++ b/test/recipes/90-test_shlibload.t
+@@ -38,5 +38,11 @@ ok(run(test(["shlibloadtest", "-ssl_first", $libcrypto, $libssl])),
+ ok(run(test(["shlibloadtest", "-just_crypto", $libcrypto, $libssl])),
+    "running shlibloadtest -just_crypto");
+ 
+-ok(run(test(["shlibloadtest", "-dso_ref", $libcrypto, $libssl])),
+-   "running shlibloadtest -dso_ref");
++# DSO_dsobyaddr() is not supported on OS390 (no dladdr()), so skip the dso_ref test
++SKIP: {
++    skip "DSO_dsobyaddr() is not supported on OS390", 1
++        if config('target') =~ m|^OS390|;
++
++    ok(run(test(["shlibloadtest", "-dso_ref", $libcrypto, $libssl])),
++       "running shlibloadtest -dso_ref");
++}
+diff --git a/test/recipes/90-test_tls13secrets.t b/test/recipes/90-test_tls13secrets.t
+index 72bb60f..c5f099f 100644
+--- a/test/recipes/90-test_tls13secrets.t
++++ b/test/recipes/90-test_tls13secrets.t
+@@ -17,6 +17,13 @@ plan skip_all => "$test_name is not supported in this build"
+        || disabled("shared")
+        || (disabled("ec") && disabled("dh"));
+ 
++# On z/OS the binder pulls libssl.a members into the test binary even in a
++# shared build; combined with the libssl-internal sources compiled directly
++# into this test, that creates conflicting duplicate definitions and
++# SSL_new() fails.
++plan skip_all => "Test is disabled on OS390"
++    if config('target') =~ m|^OS390|;
++
+ plan tests => 1;
+ 
+ ok(run(test(["tls13secretstest"])), "running tls13secretstest");
